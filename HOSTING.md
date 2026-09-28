@@ -32,3 +32,16 @@ Signing in for the very first time, and importing Word or PDF files, both need a
 ## Updating the app later
 
 Replace `index.html` in the repository. Then change `VERSION` at the top of `sw.js` (for example `studylib-v2`) so phones pick up the new version. Close and reopen the app once or twice.
+
+
+## What's new in this version
+
+- **Search** tab: looks inside every passage of every note, follows related words (built in, plus your own under More → Smart features), and handles pasted exam questions. Results open the note at the exact passage and flash the matching words.
+- **Glance** is now built automatically from your note: key concepts, definitions, facts and data, examples and case studies, and cautions, each tap-through to the exact spot. Includes a "Test myself" mode that blurs the details.
+- **Related** tab finds connected notes and sections across subjects by itself. Keep pins a link, Hide stops one being suggested.
+- **Examples** are collected from your notes automatically. Remove any that are wrong and they stay removed.
+- **Auto-highlight** in the reader marks definitions, facts, examples, cautions and key concepts in your colours (and can be cleared in one tap).
+- Everything runs on the device. Nothing is sent to an AI service, so it works offline.
+- Two small device-only settings are stored in the browser (recent searches, reading position). They are not synced, on purpose.
+
+If you host this yourself, upload all files again. Installed copies update the next time they are opened online (the service worker cache is now `studylib-v4`).

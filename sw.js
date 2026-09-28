@@ -1,5 +1,5 @@
 /* Study Library service worker. Bump VERSION when you replace index.html. */
-const VERSION = 'studylib-v3';
+const VERSION = 'studylib-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 const EXTERNAL = /(fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com)$/;
 
