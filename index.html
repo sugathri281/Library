@@ -133,6 +133,14 @@ label.f{display:block;font-weight:700;font-size:14px;margin:12px 0 4px}
 
 /* reader */
 .reader{font-family:var(--read-font);font-size:var(--read-size);line-height:var(--read-lh);max-width:44em;margin:0 auto}
+.reader.qs{outline:none;min-height:140px;border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--surface)}
+.reader.qs:empty:before,.reader.qs[data-ph]:before{content:attr(data-ph);color:var(--muted)}
+.reader.qs table{border-collapse:collapse;max-width:100%}
+.reader.qs td,.reader.qs th{border:1px solid var(--line);padding:6px 10px}
+.reader.qs img{max-width:100%;border-radius:6px}
+.qstoolbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.qstoolbar .sw{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);cursor:pointer;padding:0}
+.qstoolbar .sw.tx{background:#fff;color:#111;font:700 13px var(--ui);line-height:24px}
 .reader h1,.reader h2,.reader h3,.reader h4{font-family:var(--serif);line-height:1.3;color:var(--brand);position:relative;margin:1.6em 0 .5em;padding-right:34px}
 .reader h1{font-size:1.5em}
 .reader h2{font-size:1.3em;border-bottom:1px solid var(--line);padding-bottom:4px}
@@ -290,7 +298,8 @@ const PATHS={
  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
  chev:'<path d="M6 9l6 6 6-6"/>', sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
  link:'<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
- down:'<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/>'
+ down:'<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/>',
+ copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/>'
 };
 const FILLED=new Set(['play','pause','prev','next']);
 const ic=(n,s=22)=>`<svg class="ic${FILLED.has(n)?' f':''}" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true">${PATHS[n]||''}</svg>`;
@@ -528,6 +537,60 @@ function sanitize(html){
   $$('table',out).forEach(t=>{if(!t.querySelector('tbody')&&!t.querySelector('thead')){const tb=document.createElement('tbody');[...t.children].forEach(c=>tb.appendChild(c));t.appendChild(tb)}});
   return out.innerHTML.replace(/\u00a0/g,' ');
 }
+/* ---------- rich sanitizer (Quick summary paste: keeps real colours, tables, formatting) ---------- */
+const RICH_ALLOW=new Set(['H1','H2','H3','H4','H5','H6','P','DIV','SPAN','BR','HR','UL','OL','LI','STRONG','EM','U','S','MARK','SMALL','SUP','SUB','TABLE','THEAD','TBODY','TFOOT','TR','TH','TD','COLGROUP','COL','BLOCKQUOTE','PRE','CODE','A','IMG','FIGURE','FIGCAPTION']);
+const RICH_TAGMAP={B:'STRONG',I:'EM',STRIKE:'S',DEL:'S',CAPTION:'P'};
+const RICH_DROP=new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','NOSCRIPT','HEAD','TITLE','META','LINK','FORM','BUTTON','INPUT','SELECT','TEXTAREA','CANVAS','VIDEO','AUDIO','SVG','FOREIGNOBJECT','USE','APPLET']);
+const STYLE_PROP_RX=/^(color|background|background-color|background-image|background-clip|-webkit-background-clip|-webkit-text-fill-color|border|border-[a-z]+(-[a-z]+)?|border-radius|padding|padding-[a-z]+|margin|margin-[a-z]+|width|min-width|max-width|height|min-height|max-height|display|flex|flex-[a-z]+|justify-content|align-items|align-content|gap|row-gap|column-gap|text-align|vertical-align|font-weight|font-style|font-size|font-family|line-height|letter-spacing|text-decoration|text-decoration-color|text-transform|white-space|box-shadow|opacity|overflow-x|overflow-wrap|word-break|border-collapse|border-spacing|table-layout|list-style|list-style-type)$/;
+function safeStyle(str){
+  if(!str)return '';
+  const out=[];
+  for(const decl of str.split(';')){
+    const ix=decl.indexOf(':');if(ix<1)continue;
+    const prop=decl.slice(0,ix).trim().toLowerCase(),val=decl.slice(ix+1).trim();
+    if(!prop||!val||val.length>300)continue;
+    if(!STYLE_PROP_RX.test(prop))continue;
+    if(/url\(|expression\(|javascript:|import\b|position\s*:|behavior\s*:|<|>/i.test(val))continue;
+    out.push(prop+':'+val.replace(/"/g,"'"));
+  }
+  return out.join(';');
+}
+function sanitizeRich(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const out=document.createElement('div');
+  const walk=(node,parent)=>{
+    for(const n of [...node.childNodes]){
+      if(n.nodeType===3){parent.appendChild(document.createTextNode(n.data));continue}
+      if(n.nodeType!==1)continue;
+      let tag=n.tagName.toUpperCase();
+      if(RICH_DROP.has(tag))continue;
+      tag=RICH_TAGMAP[tag]||tag;
+      if(tag==='FONT'){
+        const e=document.createElement('span');let s=safeStyle(n.getAttribute('style')||'');
+        const col=(n.getAttribute('color')||'').replace('#','');if(/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(col))s=(s?s+';':'')+'color:#'+col;
+        if(s)e.setAttribute('style',s);
+        parent.appendChild(e);walk(n,e);continue;
+      }
+      if(!RICH_ALLOW.has(tag)){walk(n,parent);continue}
+      const el=document.createElement(tag.toLowerCase());
+      const s=safeStyle(n.getAttribute('style')||'');if(s)el.setAttribute('style',s);
+      const cls=(n.getAttribute('class')||'').split(/\s+/).filter(c=>/^hl-[dfewk]$/.test(c));if(cls.length)el.setAttribute('class','hl '+cls.join(' '));
+      if(tag==='A'){const h=n.getAttribute('href')||'';if(/^(https?:|mailto:)/i.test(h)){el.setAttribute('href',h);el.setAttribute('target','_blank');el.setAttribute('rel','noopener')}}
+      if(tag==='IMG'){const src=n.getAttribute('src')||'';if(!/^data:image\//i.test(src))continue;el.setAttribute('src',src);el.setAttribute('alt',n.getAttribute('alt')||'');if(s)el.setAttribute('style',s);parent.appendChild(el);continue}
+      if(tag==='TD'||tag==='TH')['colspan','rowspan'].forEach(a=>{const v=parseInt(n.getAttribute(a),10);if(v>1&&v<50)el.setAttribute(a,v)});
+      if(tag==='COL'){const v=parseInt(n.getAttribute('span'),10);if(v>1&&v<50)el.setAttribute('span',v)}
+      parent.appendChild(el);
+      walk(n,el);
+    }
+  };
+  walk(doc.body||doc,out);
+  $$('p,div,span,strong,em,u,s,mark,a,li,td,th,h1,h2,h3,h4,h5,h6',out).reverse().forEach(e=>{
+    if(e.textContent.trim()||e.querySelector('img,table'))return;
+    if(!e.querySelector('br')&&!/^(TD|TH)$/.test(e.tagName)&&!e.getAttribute('style'))e.remove();
+  });
+  $$('table',out).forEach(tb=>{if(!tb.querySelector('tbody')&&!tb.querySelector('thead')){const b=document.createElement('tbody');[...tb.children].forEach(c=>b.appendChild(c));tb.appendChild(b)}});
+  return out.innerHTML.replace(/\u00a0/g,' ');
+}
 function splitByHeading(html){
   const d=document.createElement('div');d.innerHTML=html;
   const kids=[...d.children];
@@ -603,7 +666,7 @@ async function importFiles(files,o){
       if(!strip(html))throw new Error('No text found');
       const parts=o.split?splitByHeading(html):null;
       (parts||[{title:base,html}]).forEach(p=>{
-        const t={id:uid(),title:p.title,subject:o.subject||'General',unit:o.unit||'',tags:[...o.tags],html:p.html,summary:'',
+        const t={id:uid(),title:p.title,subject:o.subject||'General',unit:o.unit||'',tags:[...o.tags],html:p.html,qs:'',summary:'',
           created:Date.now(),updated:Date.now(),lastOpened:0,progress:0,exampleIds:[],source:f.name};
         S.topics.push(t);made.push(t);if(typeof scheduleAutoEx==='function')scheduleAutoEx(t);
       });
@@ -1650,7 +1713,7 @@ async function backupNow(){
   if(ok){S.settings.lastBackup=Date.now();saveSettings();toast('Backup file ready');if(location.hash.startsWith('#/home'))VIEWS.home();}
 }
 async function addSample(){
-  const t={id:uid(),title:'Sample topic: structuring a descriptive answer',subject:'Sample',unit:'',tags:['sample'],html:SAMPLE_HTML,summary:'',created:Date.now(),updated:Date.now(),lastOpened:0,progress:0,exampleIds:[]};
+  const t={id:uid(),title:'Sample topic: structuring a descriptive answer',subject:'Sample',unit:'',tags:['sample'],html:SAMPLE_HTML,qs:'',summary:'',created:Date.now(),updated:Date.now(),lastOpened:0,progress:0,exampleIds:[]};
   S.topics.push(t);await DB.put('topics',t);location.hash='#/topic/'+t.id;
 }
 
@@ -1710,7 +1773,7 @@ function newTopicModal(pre={}){
     $('#nt',b).focus();$('#nno',b).onclick=closeModal;
     $('#nok',b).onclick=async()=>{
       const title=$('#nt',b).value.trim();if(!title){toast('Give the topic a title');return}
-      const t={id:uid(),title,subject:$('#ns',b).value.trim()||'General',unit:$('#nu',b).value.trim(),tags:[],html:'<p></p>',summary:'',created:Date.now(),updated:Date.now(),lastOpened:0,progress:0,exampleIds:[]};
+      const t={id:uid(),title,subject:$('#ns',b).value.trim()||'General',unit:$('#nu',b).value.trim(),tags:[],html:'<p></p>',qs:'',summary:'',created:Date.now(),updated:Date.now(),lastOpened:0,progress:0,exampleIds:[]};
       S.topics.push(t);await DB.put('topics',t);location.hash='#/topic/'+t.id+'/read?edit';
     };
   });
@@ -1864,7 +1927,7 @@ VIEWS.topic=r=>{
   let editing=qp.has('edit'),mode='full',tabClean=null;
   const deep=qp.has('c')?{k:'c',i:+qp.get('c'),hl:qp.get('hl')||'',hs:qp.get('hs')||''}:(qp.has('h')?{k:'h',i:+qp.get('h'),hs:qp.get('hs')||''}:null);
   t.lastOpened=Date.now();DB.put('topics',t);
-  const flushEdit=()=>{const rb=$('#readBody');if(editing&&rb&&mode==='full'){t.html=sanitize(rb.innerHTML)||'<p></p>';saveTopicNow(t)}};
+  const flushEdit=()=>{const rb=$('#readBody');if(!rb)return;if(editing&&mode==='full'){t.html=sanitize(rb.innerHTML)||'<p></p>';saveTopicNow(t)}else if(mode==='qs'){t.qs=sanitizeRich(rb.innerHTML);saveTopicNow(t)}};
   CLEAN.push(()=>{flushEdit();if(tabClean)tabClean()});
 
   view().innerHTML=`<div class="thead"><a href="#/library" class="small">‹ Library</a><h1>${esc(t.title)}</h1>
@@ -1931,11 +1994,55 @@ VIEWS.topic=r=>{
     const rb0=$('#tpane');
     const legend=HL_KEYS.map(k=>`<mark class="hl hl-${k}">${esc(S.settings.legend[k])}</mark>`).join('');
     const etb=`<div class="row noprint" id="etb" style="margin-bottom:10px">${[['formatBlock','H2','H2'],['formatBlock','H3','H3'],['formatBlock','P','Text'],['bold','','Bold'],['underline','','Underline'],['insertUnorderedList','','Bullets'],['insertOrderedList','','Numbers'],['removeFormat','','Clear format'],['undo','','Undo']].map(([c,v,l])=>`<button class="btn sm" data-cmd="${c}" data-val="${v}">${l}</button>`).join('')}</div>`;
-    rb0.innerHTML=`<div class="row sp noprint" style="margin-bottom:10px"><div class="seg" id="rmode"><button data-m="full" aria-pressed="${mode==='full'}">Full text</button><button data-m="hl" aria-pressed="${mode==='hl'}">Highlights only</button></div>
-      <div class="row"><button class="btn sm" id="rListen">${ic('play',18)} Listen</button>${editing||mode==='hl'?'':'<button class="btn sm" id="rCol">Collapse all</button><button class="btn sm" id="rExp">Expand all</button><button class="btn sm" id="rAuto">Auto-highlight</button>'}<button class="btn sm ${editing?'pri':''}" id="rEdit">${editing?'Done editing':'Edit'}</button></div></div>
-      ${editing?etb:''}<div class="legend">${legend}</div><article id="readBody" class="reader ${editing?'editing':''}"></article>
-      <div class="row" style="margin:24px auto;max-width:44em"><button class="btn" id="rDone">Mark as read</button><span class="small muted" id="rProg">${pct(t)}% read</span></div>`;
+    const qtb=`<div class="qstoolbar noprint" id="qsTb">${[['formatBlock','H2','H2'],['formatBlock','H3','H3'],['formatBlock','P','Text'],['bold','','Bold'],['underline','','Underline'],['insertUnorderedList','','Bullets'],['insertOrderedList','','Numbers'],['removeFormat','','Clear format'],['undo','','Undo']].map(([c,v,l])=>`<button class="btn sm" data-cmd="${c}" data-val="${v}">${l}</button>`).join('')}
+      <span style="width:1px;background:var(--line);margin:0 4px"></span>
+      ${['#3B6FB8','#2E8B57','#C7761B','#B3261E','#B08900','#8A4FD1'].map(c=>`<button class="sw" style="background:${c}" data-cmd="forecolor" data-val="${c}" aria-label="Text colour ${c}" title="Text colour"></button>`).join('')}
+      <button class="sw tx" data-cmd="forecolor" data-val="#111318" aria-label="Default text colour" title="Default text">A</button>
+      ${['#FDE7B5','#D7F0D6','#FCD9C9','#F7D3D3','#FFF3B0','#E4D7F5'].map(c=>`<button class="sw" style="background:${c}" data-cmd="hilitecolor" data-val="${c}" aria-label="Background colour ${c}" title="Background colour"></button>`).join('')}
+      <button class="sw" style="background:var(--surface2)" data-cmd="hilitecolor" data-val="transparent" aria-label="Remove background" title="Remove background">×</button>
+      </div>`;
+    rb0.innerHTML=`<div class="row sp noprint" style="margin-bottom:10px"><div class="seg" id="rmode"><button data-m="full" aria-pressed="${mode==='full'}">Full text</button><button data-m="hl" aria-pressed="${mode==='hl'}">Highlights only</button><button data-m="qs" aria-pressed="${mode==='qs'}">Quick summary</button></div>
+      <div class="row">${mode==='qs'?`<button class="btn sm" id="qsCopy">${ic('copy',18)} Copy</button><button class="btn sm ghost" id="qsClear">Clear</button>`:`<button class="btn sm" id="rListen">${ic('play',18)} Listen</button>${editing||mode==='hl'?'':'<button class="btn sm" id="rCol">Collapse all</button><button class="btn sm" id="rExp">Expand all</button><button class="btn sm" id="rAuto">Auto-highlight</button>'}<button class="btn sm ${editing?'pri':''}" id="rEdit">${editing?'Done editing':'Edit'}</button>`}</div></div>
+      ${mode==='qs'?`<p class="small muted" style="margin:0 0 10px">Paste a summary from anywhere — colours, tables and formatting are kept as you pasted them. You can also type and format here yourself.</p>${qtb}`:''}
+      ${editing?etb:''}${mode==='qs'?'':`<div class="legend">${legend}</div>`}<article id="readBody" class="reader ${editing?'editing':''}"></article>
+      ${mode==='qs'?'':`<div class="row" style="margin:24px auto;max-width:44em"><button class="btn" id="rDone">Mark as read</button><span class="small muted" id="rProg">${pct(t)}% read</span></div>`}`;
     const rb=$('#readBody');
+    $('#rmode').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.m===mode)return;flushEdit();mode=b.dataset.m;if(mode!=='full')editing=false;renderRead()};
+    if(mode==='qs'){
+      rb.className='reader qs';
+      rb.innerHTML=t.qs||'';
+      rb.contentEditable='true';rb.spellcheck=true;
+      try{document.execCommand('defaultParagraphSeparator',false,'p')}catch(e){}
+      if(!strip(t.qs||''))rb.setAttribute('data-ph','Paste your AI-generated summary here, or type one yourself.');
+      const saveQS=debounce(()=>{t.qs=sanitizeRich(rb.innerHTML);saveTopic(t)},900);
+      rb.addEventListener('input',()=>{rb.removeAttribute('data-ph');saveQS()});
+      rb.addEventListener('paste',e=>{
+        e.preventDefault();
+        const h=e.clipboardData.getData('text/html'),tx=e.clipboardData.getData('text/plain');
+        if(!h){
+          const img=[...(e.clipboardData.items||[])].find(it=>it.type&&it.type.startsWith('image/'));
+          if(img){const file=img.getAsFile(),rd=new FileReader();rd.onload=()=>{document.execCommand('insertHTML',false,`<img src="${rd.result}" alt="">`);rb.removeAttribute('data-ph');saveQS()};rd.readAsDataURL(file);return}
+        }
+        document.execCommand('insertHTML',false,h?sanitizeRich(h):md2html(tx,{lines:true}));
+        rb.removeAttribute('data-ph');saveQS();
+      });
+      rb.focus();
+      const tb=$('#qsTb');
+      if(tb){tb.addEventListener('pointerdown',e=>e.preventDefault());tb.onclick=e=>{const b=e.target.closest('[data-cmd]');if(!b)return;rb.focus();document.execCommand(b.dataset.cmd,false,b.dataset.val||null);rb.removeAttribute('data-ph');saveQS()}}
+      const cpy=$('#qsCopy');
+      if(cpy)cpy.onclick=async()=>{
+        try{
+          if(navigator.clipboard&&window.ClipboardItem)await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([rb.innerHTML],{type:'text/html'}),'text/plain':new Blob([rb.innerText],{type:'text/plain'})})]);
+          else await navigator.clipboard.writeText(rb.innerText);
+          toast('Copied — paste it wherever you need it');
+        }catch(e){toast('Could not copy automatically — select the text and copy it yourself')}
+      };
+      const clr=$('#qsClear');
+      if(clr)clr.onclick=async()=>{if(!await confirmBox('Clear the quick summary for this topic?','Clear',false))return;rb.innerHTML='';t.qs='';saveTopicNow(t);rb.setAttribute('data-ph','Paste your AI-generated summary here, or type one yourself.')};
+      const prevClean2=tabClean;
+      tabClean=()=>{t.qs=sanitizeRich(rb.innerHTML);DB.put('topics',t);if(prevClean2)prevClean2()};
+      return;
+    }
     const isH=el=>el&&/^H[1-6]$/.test(el.tagName),lvl=h=>+h.tagName[1];
     const empty=!strip(t.html||'');
 
@@ -1994,7 +2101,6 @@ VIEWS.topic=r=>{
       const m=e.target.closest('mark');const sel=getSelection();
       if(m&&sel.isCollapsed&&mode==='full'){const rg=document.createRange();rg.selectNodeContents(m);sel.removeAllRanges();sel.addRange(rg)}
     });
-    $('#rmode').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.m===mode)return;flushEdit();mode=b.dataset.m;if(mode==='hl')editing=false;renderRead()};
     const col=$('#rCol'),exp=$('#rExp');
     if(col)col.onclick=()=>allH().forEach(h=>{if(lvl(h)<=2)setCollapsed(h,true)});
     if(exp)exp.onclick=()=>allH().slice().reverse().forEach(h=>setCollapsed(h,false));
