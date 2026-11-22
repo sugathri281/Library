@@ -257,6 +257,53 @@ body.has-player main#view{padding-bottom:calc(var(--nav-h) + 200px)}
 .pick button{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 12px;margin:0 0 6px}
 .pick button:hover{border-color:var(--brand)}
 
+/* practise: question bank */
+.hscroll{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.hscroll::-webkit-scrollbar{display:none}
+.hscroll .chip{flex:none}
+.pphd{margin:22px 0 8px}
+details.chap{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:0 0 8px}
+details.chap>summary{list-style:none;cursor:pointer;padding:11px 14px;display:flex;gap:8px;align-items:baseline;min-height:44px}
+details.chap>summary::-webkit-details-marker{display:none}
+details.chap>summary::after{content:'▾';margin-left:4px;color:var(--muted)}
+details.chap[open]>summary::after{content:'▴'}
+details.chap .ct{flex:1;font-weight:700;line-height:1.35}
+details.chap .cc{font-size:12.5px;color:var(--muted);white-space:nowrap}
+details.chap .cb{padding:0 10px 10px}
+.sthd{font:700 12.5px var(--ui);color:var(--brand);text-transform:uppercase;letter-spacing:.03em;margin:12px 4px 6px}
+.qrow{display:block;text-decoration:none;color:inherit;border-top:1px solid var(--line);padding:10px 6px}
+.qrow:hover{background:var(--surface2)}
+.qrow .qt{font-size:15px;line-height:1.45}
+.qm{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.qb{display:inline-block;font:700 11.5px var(--ui);padding:2px 8px;border-radius:999px;background:var(--surface2);color:var(--muted);border:1px solid var(--line);text-decoration:none;line-height:1.5}
+.qb.pyq{background:#E3EEFB;color:#1F4E89;border-color:#C2D7F2}
+.qb.prob{background:#FFF0D6;color:#8A5300;border-color:#F2D9A8}
+.qb.prob.vh{background:#FFE0D1;color:#9A3412;border-color:#F5BFA5}
+.qb.mine{background:#EFE7FA;color:#5B3FA0;border-color:#DACCF2}
+.qb.ok{background:#DFF3E5;color:#1B6B3A;border-color:#BCE3C8}
+.qb.draft{background:#FFF6CC;color:#7A5A00;border-color:#EEDD95}
+.qb.rep{background:#FCE4EC;color:#9C1F4D;border-color:#F3C2D3}
+.qb.att{background:#E0F2F1;color:#0F5F59;border-color:#B6DEDB}
+.qb.also{font-weight:600}
+.qb.dir{font-weight:600}
+:root[data-theme="dark"] .qb,:root[data-theme="slate"] .qb,:root[data-theme="forest"] .qb,:root[data-theme="plum"] .qb,:root[data-theme="midnight"] .qb{filter:brightness(.9) saturate(.9)}
+@media (prefers-color-scheme:dark){:root:not([data-theme]) .qb{filter:brightness(.9) saturate(.9)}}
+.crumbs{margin-top:10px;line-height:1.5}
+.anscard{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 14px;margin:0 0 12px}
+.anstools,.ansedit{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.ansedit[hidden],.anstools[hidden],.anslegend[hidden]{display:none}
+.ansedit .grow{flex:1}
+.ansmeter{color:var(--muted);margin:4px 0 6px}
+.ansmeter .okc{color:#1B6B3A}.ansmeter .noc{color:var(--danger)}.ansmeter .warn{color:var(--danger);font-weight:700}
+.anslegend{font-size:12px;margin:2px 0 8px;display:flex;flex-wrap:wrap;gap:6px}
+.ansbody{max-width:none;font-size:calc(var(--read-size) - 1px)}
+.ansbody h3,.ansbody h4,.ansbody h5{margin:.9em 0 .3em;padding-right:0;font-size:1.02em}
+.ansbody ul,.ansbody ol{margin:.3em 0 .6em;padding-left:1.25em}
+.ansbody li{margin:.25em 0}
+.ansbody p{margin:.4em 0}
+.ansbody mark:not(.hl){background:var(--brand-soft);color:inherit;border-radius:2px;padding:0 1px;font-weight:600}
+.ansbody.qs{min-height:160px}
+.revit input[type=radio]{width:18px;height:18px;flex:none}
 /* practise */
 .qcard{display:block;text-decoration:none;color:inherit}
 .skel{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:0 12px 12px 0;background:var(--surface);padding:12px 14px;margin:0 0 12px}
@@ -371,31 +418,35 @@ const debounce=(f,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(
 const strip=html=>{const d=document.createElement('div');d.innerHTML=String(html).replace(/<\/(?:p|li|h[1-6]|td|th|tr|blockquote|div)>|<br\s*\/?>/gi,m=>' '+m);return (d.textContent||'').replace(/\s+/g,' ').trim()};
 
 /* ---------- state ---------- */
-const DEFAULT_SET={autoEx:true,syn:'',theme:'auto',accent:'',inkc:'',head:'',fs:18,lh:1.7,font:'serif',pauseP:450,pauseS:0,skipN:15,pron:'',spell:true,autoLang:true,examDate:'',rate:1,voice:'',summaryFirst:false,lastBackup:0,
+const DEFAULT_SET={ansHL:true,legacyDone:false,autoEx:true,syn:'',theme:'auto',accent:'',inkc:'',head:'',fs:18,lh:1.7,font:'serif',pauseP:450,pauseS:0,skipN:15,pron:'',spell:true,autoLang:true,examDate:'',rate:1,voice:'',summaryFirst:false,lastBackup:0,
   legend:{d:'Definition',f:'Fact / data',e:'Example / case study',w:'Warning / exception',k:'Answer keyword'}};
-const S={topics:[],examples:[],questions:[],plans:[],links:[],settings:JSON.parse(JSON.stringify(DEFAULT_SET))};
-const STORES=['topics','examples','questions','plans','links','meta'];
+const S={topics:[],examples:[],questions:[],plans:[],links:[],answers:[],syllabus:[],settings:JSON.parse(JSON.stringify(DEFAULT_SET))};
+const DATA_KEYS=['topics','examples','questions','plans','links','answers','syllabus'];
+const STORES=[...DATA_KEYS,'meta'];
 
 /* ---------- storage (IndexedDB, local to this browser) ---------- */
 const DB={db:null,mem:false,
   async open(){
     try{
       this.db=await new Promise((res,rej)=>{
-        const r=indexedDB.open('studylib',1);
+        const r=indexedDB.open('studylib',2);
         r.onupgradeneeded=()=>{STORES.forEach(n=>{if(!r.result.objectStoreNames.contains(n))r.result.createObjectStore(n,{keyPath:'id'})})};
-        r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); r.onblocked=()=>rej(new Error('blocked'));
+        r.onsuccess=()=>{const db=r.result;db.onversionchange=()=>{db.close();try{toast('Study Library was updated in another tab. Reloading…',3000)}catch(e){}setTimeout(()=>location.reload(),1200)};res(db)};
+        r.onerror=()=>rej(r.error);
+        r.onblocked=()=>{try{toast('Finishing an update: please close other Study Library tabs or windows.',8000)}catch(e){}};   // keep waiting; the upgrade continues once they close
       });
     }catch(e){this.mem=true;}
   },
   tx(store,mode,fn){return new Promise((res,rej)=>{const t=this.db.transaction(store,mode);const s=t.objectStore(store);const r=fn(s);t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});},
   async all(store){if(this.mem)return[];return this.tx(store,'readonly',s=>s.getAll());},
   async put(store,obj){if(this.mem)return;try{await this.tx(store,'readwrite',s=>s.put(obj));if(!(store==='meta'&&obj&&obj.id==='sync')&&typeof pokeSync==='function')pokeSync();if(store==='topics'&&typeof NLP!=='undefined')NLP.dirty();}catch(e){toast('Could not save. Storage may be full or blocked.',4000);}},
+  async putMany(store,arr){if(this.mem||!arr||!arr.length)return;try{await this.tx(store,'readwrite',s=>{arr.forEach(o=>s.put(o))});if(typeof pokeSync==='function')pokeSync();if(store==='topics'&&typeof NLP!=='undefined')NLP.dirty()}catch(e){toast('Could not save. Storage may be full.',4000)}},
   async del(store,id){if(this.mem)return;await this.tx(store,'readwrite',s=>s.delete(id));},
   async clear(store){if(this.mem)return;await this.tx(store,'readwrite',s=>s.clear());}
 };
 async function loadAll(){
   await DB.open();
-  for(const k of ['topics','examples','questions','plans','links'])S[k]=(await DB.all(k)).filter(x=>!x.deleted);
+  for(const k of DATA_KEYS)S[k]=(await DB.all(k)).filter(x=>!x.deleted);
   const meta=await DB.all('meta');
   const st=meta.find(m=>m.id==='settings');
   if(st)S.settings=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SET)),st.v,{legend:Object.assign({},DEFAULT_SET.legend,(st.v||{}).legend)});
@@ -823,10 +874,10 @@ function html2md(html){
   };
   return kids(d,null).replace(/\n{3,}/g,'\n\n').trim()+'\n';
 }
-function exportAll(){return{app:'study-library',v:1,exported:Date.now(),settings:S.settings,topics:S.topics,examples:S.examples,questions:S.questions,plans:S.plans,links:S.links}}
+function exportAll(){return{app:'study-library',v:1,exported:Date.now(),settings:S.settings,topics:S.topics,examples:S.examples,questions:S.questions,plans:S.plans,links:S.links,answers:S.answers,syllabus:S.syllabus}}
 async function restoreData(o,mode){
   await snapshot();
-  const keys=['topics','examples','questions','plans','links'];
+  const keys=DATA_KEYS;
   if(mode==='replace'){for(const k of keys){await DB.clear(k);S[k]=[]}}
   for(const k of keys){
     for(const item of (o[k]||[])){
@@ -1734,7 +1785,7 @@ function softRefresh(ch){
   if(ae&&(/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)||ae.isContentEditable))return;
   const p=location.hash.replace(/^#\/?/,'').split('?')[0].split('/'),name=p[0]||'home';
   if(name==='topic'){if(ch&&ch.topics&&ch.topics.has(p[1]))toast('This note was updated on another device. Reopen it to see the changes.',5000);return}
-  if(name==='home'||name==='library'||name==='examples')render({soft:true});
+  if(name==='home'||name==='library'||name==='examples'||(name==='practise'&&!p[1]))render({soft:true});
 }
 
 /* ---------- pickers ---------- */
@@ -1792,7 +1843,8 @@ VIEWS.home=()=>{
   const days=s.examDate?dayDiff(new Date(s.examDate+'T00:00:00').getTime(),now):null;
   const avg=Math.round(S.topics.reduce((a,t)=>a+(t.progress||0),0)/S.topics.length*100);
   const subj=subjects().map(n=>{const ts=S.topics.filter(t=>(t.subject||'General')===n);return{n,c:ts.length,p:Math.round(ts.reduce((a,t)=>a+(t.progress||0),0)/ts.length*100)}});
-  const q=S.questions.length?S.questions[Math.floor(Math.random()*S.questions.length)]:null;
+  const qPool=(()=>{const A=typeof ansIndex==='function'?ansIndex():new Map();const fresh=S.questions.filter(x=>{const a=A.get(x.id)||{};return !a.mine&&!a.scored});const hot=fresh.filter(x=>x.likelihood==='Very high'||x.repeatGroup);return hot.length?hot:(fresh.length?fresh:S.questions)})();
+  const q=qPool.length?qPool[Math.floor(Math.random()*qPool.length)]:null;
   const needBackup=!s.lastBackup||dayDiff(now,s.lastBackup)>=7;
   view().innerHTML=`<h1 class="pg">Today</h1><p class="sub">${new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})}</p>
   <div class="row" style="margin:0 0 12px"><input type="search" id="hq" placeholder="Search across all your notes" aria-label="Search across all notes"></div>
@@ -1807,7 +1859,7 @@ VIEWS.home=()=>{
   ${fresh.length?`<h2 class="sec">Start a first pass</h2>`+fresh.map(t=>`<a class="trow" href="#/topic/${t.id}"><div class="t">${esc(t.title)}</div><div class="small muted">${esc(t.subject)} · not revised yet</div></a>`).join(''):''}
   <h2 class="sec">Coverage by subject</h2>
   <div class="card">${subj.map(x=>`<div style="margin:8px 0"><div class="row sp small"><b>${esc(x.n)}</b><span class="muted">${x.c} topic${x.c>1?'s':''} · ${x.p}%</span></div><div class="bar"><i style="width:${x.p}%"></i></div></div>`).join('')}</div>
-  ${q?`<h2 class="sec">One question to practise</h2><a class="card qcard" href="#/practise/${q.id}"><div>${esc(q.text)}</div><div class="small muted" style="margin-top:6px">${esc([q.paper,q.directive,q.marks?q.marks+' marks':''].filter(Boolean).join(' · '))}</div></a>`:''}
+  ${q?`<h2 class="sec">One question to practise</h2><a class="card qcard" href="#/practise/${q.id}"><div>${esc(q.text)}</div><div class="small muted" style="margin-top:6px">${esc([paperLabel(q),q.source==='Probable'?'Probable'+(q.likelihood?' · '+q.likelihood:''):q.source==='PYQ'?'Previous year':'',q.directive].filter(Boolean).join(' · '))}</div></a>`:''}
   ${needBackup?`<div class="card" style="margin-top:18px;border-color:var(--brand)"><b>Back up your library</b><p class="small muted" style="margin:4px 0 10px">${s.lastBackup?'Last backup '+fmtDate(s.lastBackup)+'.':'No backup yet.'} Notes live only in this browser, so save a copy now and then.</p><button class="btn pri sm" id="hBk">${ic('down',18)} Download backup</button></div>`:''}`;
   const b=$('#hBk');if(b)b.onclick=backupNow;
   const hq=$('#hq');if(hq)hq.onkeydown=e=>{if(e.key==='Enter'&&hq.value.trim())location.hash='#/search?q='+encodeURIComponent(hq.value.trim())};
@@ -2782,7 +2834,7 @@ async function dbFetch(path,opts={}){
   const t=await r.text();
   return (t&&t!=='null')?JSON.parse(t):null;
 }
-const SYNC_TABLES=['topics','examples','questions','plans','links'];
+const SYNC_TABLES=DATA_KEYS;
 
 async function getCursor(){const m=(await DB.all('meta')).find(x=>x.id==='sync');return m?m.v:{pushed:{},pulled:{},seen:{},settingsPushed:0,settingsPulled:0}}
 const setCursor=c=>DB.put('meta',{id:'sync',v:c});
@@ -2799,7 +2851,15 @@ const SYNC={busy:false,lastAt:0,lastErr:'',chg:{},
   },
   async pullStore(store,cur){
     const from=cur.pulled[store]||0;
-    const data=await dbFetch(store+'.json?orderBy=%22updated%22&startAt='+(from+1));
+    let data;
+    try{data=await dbFetch(store+'.json?orderBy=%22updated%22&startAt='+(from+1))}
+    catch(e){
+      if(!/index not defined|indexOn/i.test(e.message||''))throw e;
+      // the database rules don't index this store yet: read it all and filter here, and tell the person once
+      const all=await dbFetch(store+'.json');data={};
+      if(all)for(const k in all){if(all[k]&&(all[k].updated||0)>from)data[k]=all[k]}
+      try{if(!localStorage.getItem('sl_idxwarn')){localStorage.setItem('sl_idxwarn','1');toast('Sync works, but please update your Firebase rules (see FIREBASE.md) so it stays fast.',7000)}}catch(x){}
+    }
     if(!data)return 0;
     const map=new Map((await DB.all(store)).map(x=>[x.id,x]));let changed=0;
     for(const id in data){
@@ -3315,7 +3375,7 @@ function wirePlayer(){
   if(TTS.supported){TTS.loadVoices();speechSynthesis.onvoiceschanged=()=>TTS.loadVoices()}
 }
 
-/* ---------- practise: question bank + answer studio ---------- */
+/* ---------- practise: syllabus-wise question bank, model answers, answer studio ---------- */
 const SKEL=[
  {k:'intro',t:'Introduction',w:1,hint:'A hook in two or three lines: definition, statistic, recent incident, quote or historic reference. Echo the directive word.',subs:[]},
  {k:'reasons',t:'Reasons and causes',w:2.2,hint:'Group causes under sub-heads. Pick the lenses that fit this question.',subs:['Social','Political','Economic','Environmental','Technological','Legal and institutional','Ethical and cultural','Historical']},
@@ -3326,77 +3386,431 @@ const SKEL=[
  {k:'conclusion',t:'Conclusion',w:1,hint:'Close with a way forward, a vision, a constitutional value or a short quote.',subs:[]}
 ];
 const CHECK=['The introduction hooks the reader and answers the directive word','Sub-heads are clear and underlined','Key words and phrases are underlined','There is at least one diagram, flowchart or map','There are at least two real examples with dates','Points are spaced out and easy to scan','The conclusion looks ahead','Handwriting is neat and legible'];
-const DIRECTIVES=['Discuss','Critically examine','Analyse','Comment','Evaluate','Elucidate','Examine','Explain','Justify','Suggest'];
-const PAPERS=['Essay','Paper I','Paper II','Paper III','Paper IV'];
+const DIRECTIVES=['Discuss','Critically examine','Critically analyse','Analyse','Comment','Evaluate','Elucidate','Examine','Explain','Describe','Justify','Suggest','Distinguish','Define','Assess','Illustrate'];
+const PAPERS=[
+ {id:'P1',n:'Paper I',t:'General Essay'},
+ {id:'P2',n:'Paper II',t:'History and Geography'},
+ {id:'P3',n:'Paper III',t:'Polity, Constitution, Governance, Ethics and Laws'},
+ {id:'P4',n:'Paper IV',t:'Indian and Andhra Pradesh Economy'},
+ {id:'P5',n:'Paper V',t:'Science and Technology, Environment'}];
+const LEGACY_PAPER={'Essay':'P1','Paper I':'P2','Paper II':'P3','Paper III':'P4','Paper IV':'P5'};
+const paperById=id=>PAPERS.find(p=>p.id===id);
+const paperLabel=q=>{const p=paperById(q.paper);return p?p.n:(q.paper||'')};
+const isEssay=q=>q.type==='essay'||q.paper==='P1'||q.paper==='Essay';
+const wordTarget=q=>isEssay(q)?800:200;
+const AP_RX=/\bandhra\b|\bA\.?P\.?\b(?=[\s'’,.)]|$)|amaravati|amaravathi|polavaram|visakhapatnam|vizag|rayalaseema|vijayawada|tirupati|godavari|krishna|telugu|uttarandhra|kurnool|nellore|guntur|kakinada|srikakulam|bifurcation/i;
+
+/* ----- syllabus index ----- */
+let SYL={sig:'',ch:new Map(),st:new Map(),order:new Map()};
+function syl(){
+  const sig=S.syllabus.map(p=>p.id+':'+(p.updated||0)).join('|');
+  if(SYL.sig===sig)return SYL;
+  const ch=new Map(),st=new Map(),order=new Map();let i=0;
+  S.syllabus.slice().sort((a,b)=>a.id.localeCompare(b.id)).forEach(p=>(p.chapters||[]).forEach(c=>{
+    ch.set(c.id,Object.assign({paper:p.id},c));order.set(c.id,i++);
+    (c.subtopics||[]).forEach((s,k)=>{st.set(s.id,Object.assign({chapter:c.id,paper:p.id,k},s));order.set(s.id,i++)});
+  }));
+  SYL={sig,ch,st,order};return SYL;
+}
+const chapterName=id=>{const c=syl().ch.get(id);return c?`${c.no!=null?c.no+'. ':''}${c.title}`:''};
+const subtopicName=id=>{const s=syl().st.get(id);return s?s.title:''};
+const qIsAP=q=>AP_RX.test(q.text)||AP_RX.test(chapterName(q.chapter))||AP_RX.test(subtopicName(q.subtopic));
+function repeatCounts(){const m=new Map();S.questions.forEach(q=>{if(q.repeatGroup)m.set(q.repeatGroup,(m.get(q.repeatGroup)||0)+1)});return m}
+
+/* ----- answers ----- */
+function ansIndex(){
+  const m=new Map();
+  const get=id=>{let o=m.get(id);if(!o){o={ai:0,ver:0,mine:0,last:0};m.set(id,o)}return o};
+  S.answers.forEach(a=>{const o=get(a.qid);if(a.kind==='ai'){o.ai++;if(a.verified)o.ver++}else{o.mine++;o.last=Math.max(o.last,a.updated||0)}});
+  S.plans.forEach(p=>{if(p.scores&&p.scores.length){const o=get(p.questionId);o.mine+=0;o.scored=1;o.last=Math.max(o.last,p.scores[p.scores.length-1].at||0)}});
+  return m;
+}
+const answersFor=qid=>S.answers.filter(a=>a.qid===qid).sort((a,b)=>(a.kind===b.kind?0:a.kind==='ai'?-1:1)||(a.created||0)-(b.created||0));
+const countWords=t=>(t.match(/[\p{L}\p{N}][\p{L}\p{N}'’.-]*/gu)||[]).length;
 function planFor(q){
   let p=S.plans.find(x=>x.questionId===q.id);
-  if(!p){p={id:uid(),questionId:q.id,sections:{},exampleIds:[],diagram:'',check:{},scores:[],minutes:q.paper==='Essay'?60:12,updated:0};S.plans.push(p)}
+  if(!p){p={id:uid(),questionId:q.id,sections:{},exampleIds:[],diagram:'',check:{},scores:[],minutes:isEssay(q)?60:12,updated:0};S.plans.push(p)}
   return p;
 }
+
+/* ----- question editor ----- */
 function questionModal(q,cb,draft){
-  const n=!q;q=q||{id:uid(),text:'',paper:'',directive:'',marks:'',year:'',topicIds:[]};
-  const d=Object.assign({text:q.text,paper:q.paper,directive:q.directive,marks:q.marks,year:q.year,topicIds:q.topicIds||[]},draft||{});
+  const n=!q;q=q||{id:uid(),text:'',paper:'',directive:'',marks:'',year:'',topicIds:[],source:'Mine',chapter:'',subtopic:''};
+  const d=Object.assign({text:q.text,paper:q.paper,directive:q.directive,marks:q.marks,year:q.year,topicIds:q.topicIds||[],chapter:q.chapter||'',subtopic:q.subtopic||''},draft||{});
+  const Y=syl();
+  const chOpts=pid=>[...Y.ch.values()].filter(c=>c.paper===pid).map(c=>`<option value="${c.id}" ${d.chapter===c.id?'selected':''}>${esc(chapterName(c.id))}</option>`).join('');
+  const stOpts=cid=>[...Y.st.values()].filter(s=>s.chapter===cid).map(s=>`<option value="${s.id}" ${d.subtopic===s.id?'selected':''}>${esc(s.title)}</option>`).join('');
   modal(`<h3>${n?'New question':'Edit question'}</h3>
   <label class="f" for="qt">Question</label><textarea id="qt" style="min-height:110px">${esc(d.text)}</textarea>
-  <div class="row"><div class="grow"><label class="f" for="qp">Paper</label><input type="text" id="qp" list="dlp" value="${esc(d.paper)}"></div><div class="grow"><label class="f" for="qd">Directive word</label><input type="text" id="qd" list="dld" value="${esc(d.directive)}"></div></div>
-  <div class="row"><div class="grow"><label class="f" for="qm">Marks</label><input type="number" id="qm" min="0" value="${esc(d.marks)}"></div><div class="grow"><label class="f" for="qy">Year asked (optional)</label><input type="number" id="qy" value="${esc(d.year)}"></div></div>
-  ${dl('dlp',PAPERS)}${dl('dld',DIRECTIVES)}
-  <label class="f">Topics that help answer it</label><div class="row"><button class="btn sm" id="qtp">${d.topicIds.length?d.topicIds.length+' linked':'Choose topics'}</button></div>
+  <div class="row"><div class="grow"><label class="f" for="qp">Paper</label><select id="qp"><option value="">Not set</option>${PAPERS.map(p=>`<option value="${p.id}" ${d.paper===p.id?'selected':''}>${p.n} – ${esc(p.t)}</option>`).join('')}${d.paper&&!paperById(d.paper)?`<option value="${esc(d.paper)}" selected>${esc(d.paper)}</option>`:''}</select></div>
+  <div class="grow"><label class="f" for="qd">Directive word</label><input type="text" id="qd" list="dld" value="${esc(d.directive||'')}"></div></div>
+  ${Y.ch.size?`<label class="f" for="qc">Chapter</label><select id="qc"><option value="">Not set</option>${chOpts(d.paper)}</select>
+  <label class="f" for="qs">Sub-topic</label><select id="qs"><option value="">Not set</option>${stOpts(d.chapter)}</select>`:''}
+  <div class="row"><div class="grow"><label class="f" for="qm">Marks</label><input type="number" id="qm" min="0" value="${esc(d.marks||'')}"></div><div class="grow"><label class="f" for="qy">Year asked (optional)</label><input type="number" id="qy" value="${esc(d.year||'')}"></div></div>
+  ${dl('dld',DIRECTIVES)}
+  <label class="f">Notes that help answer it</label><div class="row"><button class="btn sm" id="qtp">${d.topicIds.length?d.topicIds.length+' linked':'Choose notes'}</button></div>
   <div class="row" style="margin-top:14px"><button class="btn pri" id="qok">Save</button><button class="btn" id="qno">Cancel</button></div>`,b=>{
-    const grab=()=>({text:$('#qt',b).value,paper:$('#qp',b).value.trim(),directive:$('#qd',b).value.trim(),marks:$('#qm',b).value,year:$('#qy',b).value,topicIds:d.topicIds});
+    const grab=()=>({text:$('#qt',b).value,paper:$('#qp',b).value,directive:$('#qd',b).value.trim(),marks:$('#qm',b).value,year:$('#qy',b).value,topicIds:d.topicIds,chapter:$('#qc',b)?$('#qc',b).value:d.chapter,subtopic:$('#qs',b)?$('#qs',b).value:d.subtopic});
     $('#qt',b).focus();$('#qno',b).onclick=closeModal;
-    $('#qtp',b).onclick=async()=>{const cur=grab();const ids=await pickTopics({title:'Topics for this question',multi:true,selected:d.topicIds});questionModal(q,cb,Object.assign(cur,{topicIds:ids||d.topicIds}))};
+    const qc=$('#qc',b),qs=$('#qs',b);
+    $('#qp',b).onchange=e=>{if(qc){qc.innerHTML='<option value="">Not set</option>'+chOpts(e.target.value);qs.innerHTML='<option value="">Not set</option>'}};
+    if(qc)qc.onchange=e=>{qs.innerHTML='<option value="">Not set</option>'+stOpts(e.target.value)};
+    $('#qtp',b).onclick=async()=>{const cur=grab();const ids=await pickTopics({title:'Notes for this question',multi:true,selected:d.topicIds});questionModal(q,cb,Object.assign(cur,{topicIds:ids||d.topicIds}))};
     $('#qok',b).onclick=async()=>{const v=grab();if(!v.text.trim()){toast('Type the question first');return}
-      Object.assign(q,{text:v.text.trim(),paper:v.paper,directive:v.directive,marks:v.marks,year:v.year,topicIds:v.topicIds,updated:Date.now()});
+      if(!n&&q.bank&&v.text.trim()!==q.text)q.mod=true;
+      Object.assign(q,{text:v.text.trim(),paper:v.paper,directive:v.directive,marks:v.marks,year:v.year,topicIds:v.topicIds,chapter:v.chapter,subtopic:v.subtopic,updated:Date.now()});
+      if(isEssay(q)&&q.paper==='P1')q.type='essay';
       if(n)S.questions.push(q);await DB.put('questions',q);closeModal();if(cb)cb(q)};
   });
 }
-let QF={paper:''};
-VIEWS.practise=r=>{
-  if(r.a){const q=byId(S.questions,r.a);if(q)return qDetail(q);}
-  view().innerHTML=`<div class="row sp"><h1 class="pg">Practise</h1><button class="btn pri" id="qNew">${ic('plus')} Question</button></div>
-  <p class="sub">Store questions, then plan each answer with a structure you can copy by hand in the exam.</p><div id="qchips" class="row" style="margin-bottom:10px"></div><div id="qlist"></div>`;
-  $('#qNew').onclick=()=>questionModal(null,q=>{location.hash='#/practise/'+q.id});
-  const papers=[...new Set(S.questions.map(q=>q.paper).filter(Boolean))];
-  $('#qchips').innerHTML=papers.length?`<button class="chip" aria-pressed="${!QF.paper}" data-p="">All</button>`+papers.map(p=>`<button class="chip" aria-pressed="${QF.paper===p}" data-p="${esc(p)}">${esc(p)}</button>`).join(''):'';
-  $('#qchips').onclick=e=>{const c=e.target.closest('.chip');if(c){QF.paper=c.dataset.p;VIEWS.practise({})}};
-  const list=S.questions.filter(q=>!QF.paper||q.paper===QF.paper).sort((a,b)=>(b.updated||0)-(a.updated||0));
-  $('#qlist').innerHTML=S.questions.length?list.map(q=>{const p=S.plans.find(x=>x.questionId===q.id);const sc=p&&p.scores&&p.scores.length?p.scores[p.scores.length-1].score:null;
-    return `<a class="card qcard" style="margin-bottom:10px" href="#/practise/${q.id}"><div>${esc(q.text)}</div><div class="small muted" style="margin-top:6px">${esc([q.paper,q.directive,q.marks?q.marks+' marks':'',q.year].filter(Boolean).join(' · '))}${p&&p.updated?' · plan started':''}${sc!==null?' · self-review '+sc+'/'+CHECK.length:''}</div></a>`}).join(''):'<div class="empty">No questions yet. Add previous-year questions or ones you invent, then build an answer plan for each.</div>';
-};
-function planText(q,p){
-  const lines=['# '+q.text,'',[q.paper,q.directive,q.marks?q.marks+' marks':''].filter(Boolean).join(' · '),''];
-  SKEL.forEach(sec=>{const s=p.sections[sec.k];if(s&&s.on===false)return;lines.push('## '+sec.t);
-    if(sec.subs.length){Object.keys((s&&s.subs)||{}).forEach(k=>{lines.push('- '+k+(s.subs[k]?': '+s.subs[k].replace(/\n+/g,'; '):''))})}
-    else if(sec.k==='examples'){(p.exampleIds||[]).map(id=>byId(S.examples,id)).filter(Boolean).forEach(e=>lines.push('- '+e.title+(e.date?' ('+e.date+')':'')+(e.summary?': '+e.summary:'')))}
-    else if(sec.k==='diagram'){if(p.diagram)lines.push(p.diagram)}
-    else if(s&&s.text)lines.push(s.text);
-    lines.push('')});
-  return lines.join('\n');
+
+/* ----- list view ----- */
+let QF={tab:'bank',paper:'',src:'',flt:new Set(),q:'',open:new Set(),grp:''};
+function qMatches(q,A){
+  if(QF.paper&&(QF.paper==='other'?paperById(q.paper):q.paper!==QF.paper))return false;
+  if(QF.src&&(q.source||'Mine')!==QF.src)return false;
+  if(QF.grp&&q.repeatGroup!==QF.grp)return false;
+  const a=A.get(q.id)||{};
+  if(QF.tab==='model'&&!a.ai)return false;
+  if(QF.flt.has('vh')&&q.likelihood!=='Very high')return false;
+  if(QF.flt.has('ans')&&!a.ai)return false;
+  if(QF.flt.has('noans')&&a.ai)return false;
+  if(QF.flt.has('ver')&&!a.ver)return false;
+  if(QF.flt.has('new')&&(a.mine||a.scored))return false;
+  if(QF.flt.has('ap')&&!qIsAP(q))return false;
+  if(QF.q){const t=(q.text+' '+chapterName(q.chapter)+' '+subtopicName(q.subtopic)+' '+(q.basis||'')).toLowerCase();if(!QF.q.toLowerCase().split(/\s+/).filter(Boolean).every(w=>t.includes(w)))return false}
+  return true;
 }
+function qRow(q,A,R){
+  const a=A.get(q.id)||{},rc=q.repeatGroup?R.get(q.repeatGroup):0;
+  const src=q.source==='PYQ'?'<span class="qb pyq">PYQ</span>':q.source==='Probable'?`<span class="qb prob${q.likelihood==='Very high'?' vh':''}">Probable${q.likelihood?' · '+esc(q.likelihood):''}</span>`:'<span class="qb mine">Mine</span>';
+  const st=a.ai?(a.ver?'<span class="qb ok">✓ Model answer</span>':'<span class="qb draft">Model answer · AI draft</span>'):'';
+  const also=(q.alsoRelevant||[]).map(id=>{const c=syl().ch.get(id);return c?`<span class="qb also" title="${esc(chapterName(id))}">also ${paperById(c.paper)?paperById(c.paper).n.replace('Paper ','P-'):''} ch ${c.no}</span>`:''}).join('');
+  return `<a class="qrow" href="#/practise/${encodeURIComponent(q.id)}"><div class="qt">${esc(q.text)}</div><div class="qm">${src}${q.directive?`<span class="qb dir">${esc(q.directive)}</span>`:''}${rc>1?`<span class="qb rep">theme asked ${rc}×</span>`:''}${st}${a.mine||a.scored?'<span class="qb att">attempted</span>':''}${also}</div></a>`;
+}
+VIEWS.practise=r=>{
+  if(r.a){const q=byId(S.questions,decodeURIComponent(r.a));if(q)return qDetail(q);}
+  const qp=new URLSearchParams(r.q||'');
+  if(qp.get('tab'))QF.tab=qp.get('tab');
+  if(qp.get('ch')){const c=syl().ch.get(qp.get('ch'));if(c){QF.paper=c.paper;QF.open.add(c.id);QF.src='';QF.flt.clear();QF.q='';QF.grp='';QF.tab='bank';QF.jump=c.id}}
+  if(qp.get('grp')){QF.grp=qp.get('grp');QF.tab='bank';QF.paper='';QF.q=''}
+  const A=ansIndex();
+  const nAi=S.questions.filter(q=>(A.get(q.id)||{}).ai).length;
+  const nMine=S.answers.filter(a=>a.kind==='mine').length+S.plans.reduce((n,p)=>n+((p.scores||[]).length),0);
+  const legacy=S.questions.filter(q=>q.paper&&LEGACY_PAPER[q.paper]);
+  view().innerHTML=`<div class="row sp"><h1 class="pg">Practise</h1><div class="row"><button class="btn" id="qImp">${ic('up',18)} Import</button><button class="btn pri" id="qNew">${ic('plus')} Question</button></div></div>
+  ${legacy.length&&!S.settings.legacyDone?`<div class="card" style="border-color:var(--brand);margin-bottom:12px"><b>Update paper names to the official numbering?</b>
+    <p class="small" style="margin:6px 0">${Object.keys(LEGACY_PAPER).map(k=>{const n=legacy.filter(q=>q.paper===k).length;return n?`${esc(k)} → ${paperById(LEGACY_PAPER[k]).n} (${n} question${n>1?'s':''})`:''}).filter(Boolean).join('<br>')}</p>
+    <p class="small muted" style="margin:0 0 8px">Paper I is now the Essay, Paper II History and Geography, up to Paper V Science and Technology.</p>
+    <div class="row"><button class="btn sm pri" id="lgOk">Apply</button><button class="btn sm" id="lgNo">Leave as they are</button></div></div>`:''}
+  <div class="seg" role="tablist" id="qtabs" style="margin-bottom:10px"><button data-t="bank" aria-pressed="${QF.tab==='bank'}">Question bank</button><button data-t="model" aria-pressed="${QF.tab==='model'}">Model answers${nAi?' '+nAi:''}</button><button data-t="mine" aria-pressed="${QF.tab==='mine'}">My attempts${nMine?' '+nMine:''}</button></div>
+  <div id="qbody"></div>`;
+  $('#qNew').onclick=()=>questionModal(null,q=>{location.hash='#/practise/'+encodeURIComponent(q.id)});
+  $('#qImp').onclick=importMenu;
+  $('#qtabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;QF.tab=b.dataset.t;VIEWS.practise({})};
+  const lo=$('#lgOk');if(lo)lo.onclick=async()=>{const now=Date.now(),ch=[];legacy.forEach(q=>{q.paper=LEGACY_PAPER[q.paper];if(q.paper==='P1')q.type='essay';q.updated=now;ch.push(q)});await DB.putMany('questions',ch);S.settings.legacyDone=true;saveSettings();toast('Paper names updated');VIEWS.practise({})};
+  const ln=$('#lgNo');if(ln)ln.onclick=()=>{S.settings.legacyDone=true;saveSettings();VIEWS.practise({})};
+  if(QF.tab==='mine')return drawAttempts();
+  drawBank(A);
+};
+function drawBank(A){
+  const R=repeatCounts(),body=$('#qbody');
+  const hasOther=S.questions.some(q=>!paperById(q.paper));
+  const chips=(arr,key)=>arr.map(([v,l])=>`<button class="chip" data-${key}="${v}" aria-pressed="${key==='p'?QF.paper===v:key==='s'?QF.src===v:QF.flt.has(v)}">${l}</button>`).join('');
+  body.innerHTML=`<input type="search" id="qq" placeholder="Search questions, chapters, sub-topics" value="${esc(QF.q)}" aria-label="Search questions">
+   <div class="hscroll" id="qpf">${chips([['','All papers'],...PAPERS.map(p=>[p.id,p.n]),...(hasOther?[['other','Other']]:[])],'p')}</div>
+   <div class="hscroll" id="qff">${chips([['PYQ','PYQ'],['Probable','Probable'],['Mine','Mine']],'s')}${chips([['vh','Very high'],...(QF.tab==='bank'?[['ans','Has model answer'],['noans','No model answer']]:[]),['ver','Verified'],['new','Not attempted'],['ap','Andhra Pradesh']],'f')}</div>
+   ${QF.grp?`<div class="card tight row sp" style="margin:8px 0"><span class="small">Showing every version of one repeated theme.</span><button class="btn sm" id="qgx">Show all</button></div>`:''}
+   <div id="qstat" class="small muted" style="margin:8px 0"></div><div id="qtree"></div>`;
+  const draw=()=>{
+    const list=S.questions.filter(q=>qMatches(q,A)),Y=syl();
+    const filtering=!!(QF.q||QF.src||QF.flt.size||QF.grp||QF.tab==='model');
+    $('#qstat').textContent=`${list.length} question${list.length===1?'':'s'}${QF.tab==='model'?' with a model answer':''}${filtering&&list.length?' · tap a chapter to open it':''}`;
+    if(!S.questions.length){$('#qtree').innerHTML=`<div class="empty">No questions yet. Tap <b>Import</b> to bring in your question bank (question-bank.json), or add your own with <b>+ Question</b>.</div>`;return}
+    if(!list.length){$('#qtree').innerHTML=`<div class="empty">${QF.tab==='model'?'No model answers match these filters yet. Import answers from your revision pages, or paste one on any question.':'No questions match these filters.'}</div>`;return}
+    const byP=new Map();
+    list.forEach(q=>{const pk=paperById(q.paper)?q.paper:'other';const ck=Y.ch.has(q.chapter)?q.chapter:'_'+pk;
+      if(!byP.has(pk))byP.set(pk,new Map());const m=byP.get(pk);if(!m.has(ck))m.set(ck,[]);m.get(ck).push(q)});
+    const autoOpen=filtering&&list.length<=40;
+    let h='';
+    [...PAPERS.map(p=>p.id),'other'].forEach(pk=>{
+      const m=byP.get(pk);if(!m)return;const p=paperById(pk);
+      h+=`<h2 class="sec pphd">${p?esc(p.n+' – '+p.t):'Other questions'}</h2>`;
+      [...m.keys()].sort((a,b)=>(Y.order.get(a)??1e9)-(Y.order.get(b)??1e9)).forEach(ck=>{
+        const qs=m.get(ck),pr=qs.filter(q=>q.source==='Probable').length,an=qs.filter(q=>(A.get(q.id)||{}).ai).length;
+        const open=autoOpen||QF.open.has(ck);
+        h+=`<details class="chap" data-ch="${esc(ck)}" ${open?'open':''}><summary><span class="ct">${ck.startsWith('_')?'Not linked to a chapter':esc(chapterName(ck))}</span><span class="cc">${qs.length} Q${pr?` · ${pr} probable`:''}${an?` · ${an} answered`:''}</span></summary><div class="cb">${open?chapBody(qs,A,R):''}</div></details>`;
+      });
+    });
+    $('#qtree').innerHTML=h;
+    $$('#qtree details.chap').forEach(d=>d.addEventListener('toggle',()=>{
+      const ck=d.dataset.ch;if(d.open){QF.open.add(ck);const cb=$('.cb',d);if(!cb.innerHTML){const qs=S.questions.filter(q=>qMatches(q,A)&&((Y.ch.has(q.chapter)?q.chapter:'_'+(paperById(q.paper)?q.paper:'other'))===ck));cb.innerHTML=chapBody(qs,A,R)}}else QF.open.delete(ck)}));
+    if(QF.jump){const el=$(`#qtree details[data-ch="${QF.jump}"]`);QF.jump=null;if(el)setTimeout(()=>el.scrollIntoView({block:'start'}),30)}
+  };
+  draw();
+  let t;$('#qq').oninput=e=>{clearTimeout(t);t=setTimeout(()=>{QF.q=e.target.value.trim();draw()},220)};
+  $('#qpf').onclick=e=>{const c=e.target.closest('[data-p]');if(!c)return;QF.paper=c.dataset.p;$$('#qpf .chip').forEach(x=>x.setAttribute('aria-pressed',x===c));draw()};
+  $('#qff').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;
+    if(c.dataset.s!==undefined){QF.src=QF.src===c.dataset.s?'':c.dataset.s;$$('#qff [data-s]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===QF.src))}
+    else{const v=c.dataset.f;if(QF.flt.has(v))QF.flt.delete(v);else{QF.flt.add(v);if(v==='ans')QF.flt.delete('noans');if(v==='noans')QF.flt.delete('ans')}$$('#qff [data-f]').forEach(x=>x.setAttribute('aria-pressed',QF.flt.has(x.dataset.f)))}
+    draw()};
+  const gx=$('#qgx');if(gx)gx.onclick=()=>{QF.grp='';VIEWS.practise({})};
+}
+function chapBody(qs,A,R){
+  const Y=syl(),by=new Map();
+  qs.forEach(q=>{const k=Y.st.has(q.subtopic)?q.subtopic:'_';if(!by.has(k))by.set(k,[]);by.get(k).push(q)});
+  return [...by.keys()].sort((a,b)=>(Y.order.get(a)??1e9)-(Y.order.get(b)??1e9)).map(k=>{
+    const arr=by.get(k).sort((a,b)=>(a.source===b.source?0:a.source==='PYQ'?-1:1)||String(a.id).localeCompare(String(b.id)));
+    return `<div class="sthd">${k==='_'?'Other':esc(subtopicName(k))}</div>`+arr.map(q=>qRow(q,A,R)).join('');
+  }).join('');
+}
+function drawAttempts(){
+  const items=[];
+  S.answers.filter(a=>a.kind==='mine').forEach(a=>{const q=byId(S.questions,a.qid);if(q)items.push({at:a.updated||a.created||0,q,html:`Written answer · ${a.words||0} words`})});
+  S.plans.forEach(p=>{const q=byId(S.questions,p.questionId);if(!q)return;(p.scores||[]).forEach(s=>items.push({at:s.at,q,html:`Self-review ${s.score}/${CHECK.length}`}))});
+  items.sort((a,b)=>b.at-a.at);
+  $('#qbody').innerHTML=items.length?`<p class="small muted">Your written answers and self-review scores, newest first. Open one to compare it with the model answer.</p>`+items.map(x=>{const hasAi=S.answers.some(a=>a.qid===x.q.id&&a.kind==='ai');
+    return `<a class="qrow" href="#/practise/${encodeURIComponent(x.q.id)}"><div class="qt">${esc(x.q.text)}</div><div class="qm"><span class="qb att">${x.html}</span><span class="qb dir">${fmtDate(x.at)}</span>${paperLabel(x.q)?`<span class="qb dir">${esc(paperLabel(x.q))}</span>`:''}${hasAi?'<span class="qb ok">model answer to compare</span>':''}</div></a>`}).join(''):
+    '<div class="empty">Nothing yet. Open any question and use <b>Write my answer</b>, or plan and time an answer and record a self-review score.</div>';
+}
+
+/* ----- answer prompt for Claude ----- */
+function claudePrompt(q){
+  const p=paperById(q.paper),E=isEssay(q);
+  return [
+`Write a model answer for the APPSC Group 1 Mains exam (mid-2027).`,``,
+`Question: ${q.text}`,
+`Paper: ${p?p.n+' – '+p.t:(q.paper||'not set')}`+(q.chapter?`\nChapter: ${chapterName(q.chapter)}`:'')+(q.subtopic?`\nSub-topic: ${subtopicName(q.subtopic)}`:''),
+q.directive?`Directive word: ${q.directive}`:'',``,
+E?`Format: an essay of about 800 words. A short introduction with a hook, 4–6 well-argued body sections with clear headings, balanced viewpoints, Indian and Andhra Pradesh examples, and a forward-looking conclusion.`
+ :`Format: within 200 words (15 marks). Introduction of 2–3 lines with a hook (definition, data or a recent event). Body as short bullets under 2–4 bold sub-headings. Conclusion with a way forward.`,
+`Use the exact keywords evaluators look for: constitutional articles, acts with years, committees and commissions, Supreme Court judgments, schemes (including Andhra Pradesh schemes), and data with source and year. Add 1–2 recent, dated examples. Check recent facts against current sources and leave out anything you cannot verify.`,
+`Mark the most important terms in bold. Return only the answer, starting with the introduction.`].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');
+}
+
+/* ----- answer cards ----- */
+function ansStructure(root){
+  const kids=[...root.children].filter(e=>e.textContent.trim());
+  const txt=e=>e.textContent.replace(/\s+/g,' ').trim();
+  const first=kids[0],last=kids[kids.length-1];
+  const intro=!!first&&(/^(introduction|intro)\b/i.test(txt(first))||(first.tagName==='P'&&countWords(txt(first))>=12)||kids.slice(0,3).some(e=>/^(introduction|intro)\b/i.test(txt(e))));
+  const body=!!root.querySelector('ul,ol,table,h3,h4,h5')||kids.length>=4;
+  const concl=kids.some(e=>/^(conclusion|way forward|to conclude|in conclusion)\b/i.test(txt(e)))||(!!last&&last!==first&&last.tagName==='P'&&!!root.querySelector('ul,ol'));
+  return{intro,body,concl};
+}
+function textNodesFor(root){
+  const out=[],w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.data.trim()&&!n.parentElement.closest('mark,a,code,.nohl')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
+  let n;while((n=w.nextNode()))out.push(n);return out;
+}
+function wrapMatches(root,rx,cls,limit){
+  let made=0;
+  for(const n of textNodesFor(root)){
+    if(limit&&made>=limit)break;
+    rx.lastIndex=0;const ms=[...n.data.matchAll(rx)].filter(m=>m[0].trim().length>1);
+    for(let i=ms.length-1;i>=0;i--){
+      const m=ms[i];let s=m.index,e=s+m[0].length;
+      while(e>s&&/[\s,;:.]/.test(n.data[e-1]))e--;
+      if(e<=s)continue;
+      const mid=n.splitText(s);mid.splitText(e-s);
+      const mk=document.createElement('mark');mk.className='hl hl-'+cls;mk.setAttribute('data-a','1');mid.parentNode.insertBefore(mk,mid);mk.appendChild(mid);made++;
+    }
+  }
+  return made;
+}
+const AH={
+  legal:/\b(?:Articles?|Art\.)\s?\d+[A-Z]?(?:\s?\(\d+[a-z]?\))*(?:\s?(?:,|and|&|to)\s?\d+[A-Z]?(?:\(\d+[a-z]?\))*)*|\b(?:Sections?|s\.)\s?\d+[A-Z]?(?:\(\d+\))?(?=\W)|\b\d+(?:st|nd|rd|th)\s(?:Constitutional\s)?(?:Amendment|Finance Commission|Schedule|Five[- ]Year Plan)(?:\sAct)?(?:,?\s(?:19|20)\d\d)?|\b(?:[A-Z][\w.'’&-]*\s(?:(?:of|for|and|on|the|to|in)\s)*){1,6}(?:Act|Code|Sanhita|Adhiniyam|Rules|Bill|Amendment|Committee|Commission|Council|Authority|Tribunal|Report|Declaration|Protocol|Convention|Accord|Agreement|Doctrine)(?:,?\s(?:19|20)\d\d)?\b|\b[A-Z][\w.]+(?:\s[A-Z][\w.]+){0,3}\sv(?:s)?\.?\s[A-Z][\w.]+(?:\s[A-Z][\w.]+){0,3}(?:\s?\((?:19|20)\d\d\))?/g,
+  scheme:/\b(?:[A-Z][\w'’-]+\s){1,5}(?:Yojana|Mission|Abhiyan|Scheme|Programme|Program|Policy|Initiative|Pathakam|Kanuka|Bharosa|Deevena|Sachivalayam|Corridor|Index|Vision)(?:\s(?:19|20)\d\d)?\b/g,
+  data:/(?:₹|Rs\.?\s?|INR\s?|US\$\s?|\$)\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:lakh|crore|million|billion|trillion|bn|cr)\b)?(?:\s?crore\b)?|\b\d[\d,]*(?:\.\d+)?\s?(?:%|per\s?cent\b|percent\b)|\b\d[\d,]*(?:\.\d+)?\s?(?:lakh|crore|million|billion|trillion)\b(?:\s(?:tonnes|hectares|acres|people|households|km|MW|GW|jobs|farmers|families))?|\b\d[\d,]*(?:\.\d+)?\s?(?:sq\.?\s?km|km|hectares?|acres?|MW|GW|TMC|mm|tonnes?)\b|\b(?:1[6-9]|20)\d\d(?:\s?[–-]\s?\d{2,4})?\b/g,
+  example:/\b(?:for example|for instance|e\.g\.|case study|such as|as seen in|best practice|success story)[,:]?\s[^.;:()\n]{3,70}/gi,
+  wayHead:/^(way forward|conclusion|the way ahead|suggestions?|recommendations?|reforms?( needed)?|measures( needed)?|steps( needed)?|solutions?|remedies)\b/i
+};
+function ansHighlight(root,q){
+  let n=0;
+  /* way-forward points: lead phrase of each point after a "Way forward / Conclusion / Measures" heading */
+  let inWay=false;
+  [...root.children].forEach(el=>{
+    const t=el.textContent.replace(/\s+/g,' ').trim();
+    if(/^H[1-6]$/.test(el.tagName)||(/^P$/.test(el.tagName)&&el.firstElementChild&&/^(B|STRONG)$/.test(el.firstElementChild.tagName)&&t.startsWith(el.firstElementChild.textContent.trim())&&el.firstElementChild.textContent.trim().length<40)){
+      const head=/^H/.test(el.tagName)?t:el.firstElementChild.textContent.trim();
+      inWay=AH.wayHead.test(head.replace(/^[^A-Za-z]+/,''));if(/^H/.test(el.tagName))return;
+    }
+    if(!inWay)return;
+    $$('li',el).concat(el.tagName==='LI'?[el]:[]).forEach(li=>{
+      const lead=li.querySelector(':scope > b, :scope > strong');
+      const target=lead&&!lead.closest('mark')?lead:null;
+      if(target){const mk=document.createElement('mark');mk.className='hl hl-w';mk.setAttribute('data-a','1');target.parentNode.insertBefore(mk,target);mk.appendChild(target);n++;return}
+      const tn=textNodesFor(li)[0];if(!tn)return;
+      const m=/^\s*[^,:;.]{3,60}?(?=[,:;.]|$)/.exec(tn.data);if(!m)return;
+      const ws=m[0].trim().split(/\s+/);if(ws.length>9)return;
+      const s=tn.data.indexOf(m[0].trim()),mid=tn.splitText(s);mid.splitText(m[0].trim().length);
+      const mk=document.createElement('mark');mk.className='hl hl-w';mk.setAttribute('data-a','1');mid.parentNode.insertBefore(mk,mid);mk.appendChild(mid);n++;
+    });
+  });
+  n+=wrapMatches(root,AH.legal,'d');
+  n+=wrapMatches(root,AH.scheme,'k');
+  n+=wrapMatches(root,AH.data,'f');
+  n+=wrapMatches(root,AH.example,'e');
+  /* words that echo the question: first use of each, so the examiner sees the question answered */
+  if(q){
+    const skip=new Set([...DIRECTIVES.map(d=>d.toLowerCase()),'critically','briefly','write','note','account','explain','discuss','examine','analyse','analyze','light','context','role','various','different','significance','importance','reference','india','indian','state','states','government']);
+    const terms=[...new Set((q.text.match(/[A-Za-z][A-Za-z'’-]{4,}/g)||[]).map(w=>w.toLowerCase()).filter(w=>!skip.has(w)&&!(typeof STOPS!=='undefined'&&STOPS.has(w))))].slice(0,10);
+    terms.forEach(w=>{const rx=new RegExp('\\b'+escRe(w.slice(0,Math.max(5,w.length-2)))+'[a-z]*\\b','i');n+=wrapMatches(root,new RegExp(rx.source,'gi'),'k',1)});
+  }
+  return n;
+}
+const ANS_LEGEND=[['f','Facts and data'],['d','Articles, laws, bodies, cases'],['k','Schemes and key terms'],['e','Examples'],['w','Way forward']];
+function answerCard(a,q){
+  const ver=a.kind==='ai'?(a.verified?'<span class="qb ok">Verified</span>':'<span class="qb draft">AI draft – verify</span>'):'';
+  return `<div class="anscard" data-aid="${esc(a.id)}">
+    <div class="row sp anshd"><div><b>${a.kind==='ai'?'Model answer':'My answer'}</b> ${ver}<div class="small muted">${esc(a.origin||'')}${a.origin?' · ':''}${fmtDate(a.updated||a.created)}</div></div></div>
+    <div class="anstools noprint">
+      <button class="btn sm" data-act="listen">${ic('play',16)} Listen</button>
+      <button class="btn sm" data-act="hl" aria-pressed="${S.settings.ansHL!==false}">Highlights ${S.settings.ansHL!==false?'on':'off'}</button>
+      <button class="btn sm" data-act="edit">Edit</button>
+      <button class="btn sm" data-act="copy">${ic('copy',16)} Copy</button>
+      ${a.kind==='ai'?`<button class="btn sm" data-act="ver">${a.verified?'Mark as not verified':'Mark verified'}</button>`:''}
+      <button class="btn sm ghost" data-act="del" aria-label="Delete this answer">${ic('trash',16)}</button>
+    </div>
+    <div class="ansedit noprint" hidden>${['H3','Bold','Underline','Bullets','Numbers','Clear format','Undo'].map(l=>`<button class="btn sm" data-ed="${l}">${l}</button>`).join('')}<span class="grow"></span><button class="btn sm pri" data-act="save">Save</button><button class="btn sm" data-act="cancel">Cancel</button></div>
+    <div class="ansmeter small" aria-live="polite"></div>
+    <div class="legend anslegend">${ANS_LEGEND.map(([k,l])=>`<mark class="hl hl-${k}">${l}</mark>`).join(' ')}</div>
+    <article class="reader ansbody"></article></div>`;
+}
+function paintAnswer(card,a,q){
+  const body=$('.ansbody',card);
+  body.innerHTML=a.html||'<p class="muted">Empty answer.</p>';
+  const on=S.settings.ansHL!==false;
+  if(on)ansHighlight(body,q);
+  $('.anslegend',card).hidden=!on;
+  const st=ansStructure(body),w=countWords(body.textContent),tg=wordTarget(q),over=w>tg*1.15;
+  $('.ansmeter',card).innerHTML=`<span class="${over?'warn':''}">${w} words · aim ${tg}</span> · <span class="${st.intro?'okc':'noc'}">${st.intro?'✓':'✗'} Introduction</span> · <span class="${st.body?'okc':'noc'}">${st.body?'✓':'✗'} Body</span> · <span class="${st.concl?'okc':'noc'}">${st.concl?'✓':'✗'} Conclusion</span>`;
+}
+async function copyRich(el,label){
+  const c=el.cloneNode(true);
+  const src=[...el.querySelectorAll('mark,h1,h2,h3,h4,h5,h6,b,strong')],dst=[...c.querySelectorAll('mark,h1,h2,h3,h4,h5,h6,b,strong')];
+  src.forEach((s,i)=>{const cs=getComputedStyle(s),d=dst[i];if(!d)return;
+    if(s.tagName==='MARK')d.setAttribute('style',`background-color:${cs.backgroundColor};color:${cs.color};text-decoration:${cs.textDecorationLine} ${cs.textDecorationStyle} ${cs.textDecorationColor}`);
+    else if(/^H/.test(s.tagName))d.setAttribute('style',`color:${cs.color}`);
+    d.removeAttribute('class');d.removeAttribute('data-a')});
+  const html=`<div style="font-family:Georgia,'Times New Roman',serif;color:#111">${c.innerHTML}</div>`;
+  try{
+    if(navigator.clipboard&&window.ClipboardItem)await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([el.innerText],{type:'text/plain'})})]);
+    else await navigator.clipboard.writeText(el.innerText);
+    toast((label||'Answer')+' copied. Paste it into Word.');
+  }catch(e){toast('Copy is blocked here. Select the text and copy it yourself.',4000)}
+}
+function richPasteInto(el,after){
+  el.addEventListener('paste',e=>{
+    e.preventDefault();
+    const h=e.clipboardData.getData('text/html'),tx=e.clipboardData.getData('text/plain');
+    document.execCommand('insertHTML',false,h?sanitizeRich(h):md2html(tx,{lines:true}));
+    el.removeAttribute('data-ph');if(after)after();
+  });
+}
+async function saveAnswer(a){a.updated=Date.now();if(!a.created)a.created=a.updated;if(!byId(S.answers,a.id))S.answers.push(a);await DB.put('answers',a)}
+function pasteAnswerModal(q,done){
+  modal(`<h3>Paste an answer</h3><p class="small muted" style="margin-top:0">Paste the answer Claude wrote. Headings, bullets, bold and colours are kept.</p>
+    <div class="reader qs" id="pa" contenteditable="true" data-ph="Paste here" style="min-height:180px;max-height:50vh;overflow:auto"></div>
+    <label class="f" for="pao">Where it came from</label><input type="text" id="pao" value="Claude, pasted ${new Date().toLocaleDateString()}">
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="paok">Save as model answer</button><button class="btn" id="pano">Cancel</button></div>`,b=>{
+      const pa=$('#pa',b);pa.focus();richPasteInto(pa);
+      pa.addEventListener('input',()=>pa.removeAttribute('data-ph'));
+      $('#pano',b).onclick=closeModal;
+      $('#paok',b).onclick=async()=>{const html=sanitizeRich(pa.innerHTML);if(!strip(html)){toast('Paste the answer first');return}
+        const a={id:'ai-'+uid(),qid:q.id,kind:'ai',html,origin:$('#pao',b).value.trim(),verified:false,words:countWords(strip(html))};
+        await saveAnswer(a);closeModal();toast('Model answer saved');if(done)done(a)};
+    });
+}
+
+/* ----- question detail ----- */
 function qDetail(q){
   const p=planFor(q);
   const savePlan=debounce(()=>{p.updated=Date.now();DB.put('plans',p)},500);
-  const words=q.paper==='Essay'?1000:(+q.marks?Math.round(+q.marks*15):0);
   let left=Math.round((p.minutes||12)*60),tmr=null;
   CLEAN.push(()=>clearInterval(tmr));
   const linked=(q.topicIds||[]).map(id=>byId(S.topics,id)).filter(Boolean);
+  const R=repeatCounts(),rc=q.repeatGroup?R.get(q.repeatGroup):0;
+  const crumbs=[paperById(q.paper)?`${paperById(q.paper).n} – ${paperById(q.paper).t}`:q.paper,q.chapter?`<a href="#/practise?ch=${encodeURIComponent(q.chapter)}">${esc(chapterName(q.chapter))}</a>`:'',q.subtopic?subtopicName(q.subtopic):''].filter(Boolean);
+  const answers=answersFor(q.id),ai=answers.filter(a=>a.kind==='ai'),mine=answers.filter(a=>a.kind==='mine');
   view().innerHTML=`<a href="#/practise" class="small">‹ Practise</a>
-  <h1 class="pg" style="font-size:22px;margin-top:8px">${esc(q.text)}</h1>
-  <div class="small muted">${esc([q.paper,q.directive,q.marks?q.marks+' marks':'',q.year].filter(Boolean).join(' · '))}</div>
+  ${crumbs.length?`<div class="small muted crumbs">${crumbs.map(c=>/^</.test(c)?c:esc(c)).join(' › ')}</div>`:''}
+  <h1 class="pg" style="font-size:22px;margin-top:6px">${esc(q.text)}</h1>
+  <div class="qm" style="margin:6px 0">${q.source==='PYQ'?'<span class="qb pyq">Previous year question</span>':q.source==='Probable'?`<span class="qb prob${q.likelihood==='Very high'?' vh':''}">Probable${q.likelihood?' · '+esc(q.likelihood):''}</span>`:'<span class="qb mine">My question</span>'}${q.directive?`<span class="qb dir">${esc(q.directive)}</span>`:''}${isEssay(q)?'<span class="qb dir">Essay · about 800 words</span>':''}${rc>1?`<a class="qb rep" href="#/practise?grp=${encodeURIComponent(q.repeatGroup)}">theme asked ${rc}× · see all</a>`:''}${q.marks?`<span class="qb dir">${esc(q.marks)} marks</span>`:''}</div>
+  ${q.basis?`<p class="small" style="margin:6px 0"><b>Why it is likely:</b> ${esc(q.basis)}</p>`:''}
+  ${(q.alsoRelevant||[]).length?`<div class="small" style="margin:6px 0">Also relevant to: ${(q.alsoRelevant||[]).map(id=>{const c=syl().ch.get(id);return c?`<a class="qb also" href="#/practise?ch=${encodeURIComponent(id)}">${esc(paperById(c.paper).n)} · ${esc(chapterName(id))}</a>`:''}).join(' ')}</div>`:''}
   <div class="row" style="margin:10px 0"><button class="btn sm" id="qEd">Edit question</button><button class="btn sm dng" id="qDel">Delete</button></div>
   ${linked.length?`<div class="small" style="margin-bottom:10px">Notes to revise: ${linked.map(t=>`<a href="#/topic/${t.id}/read">${esc(t.title)}</a>`).join(', ')}</div>`:''}
   <div id="qsug"></div>
-  <div class="card tight row sp" style="margin-bottom:14px"><div><div class="timer" id="tm">${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}</div><div class="small muted">${words?'Aim for about '+words+' words. ':''}A rough guide only.</div></div>
+  <h2 class="sec">Model answer${ai.length>1?'s':''}</h2>
+  <div id="aiList">${ai.length?'':`<div class="card tight small muted" style="margin-bottom:8px">No model answer yet. Copy the prompt into Claude, then paste its answer back here.</div>`}</div>
+  <div class="row" style="margin-bottom:6px"><button class="btn sm" id="qPrompt">${ic('copy',16)} Copy prompt for Claude</button><button class="btn sm" id="qPaste">Paste answer</button></div>
+  <h2 class="sec">My answers</h2>
+  <div id="mineList">${mine.length?'':`<p class="small muted" style="margin-top:0">Write your own answer here to compare it with the model answer, or practise on paper with the timer below.</p>`}</div>
+  <div class="row"><button class="btn sm" id="qWrite">${ic('pen',16)} Write my answer</button></div>
+  <details class="ess" ${answers.length?'':'open'} style="margin-top:18px"><summary>Plan and time your answer</summary><div class="body">
+  <div class="card tight row sp" style="margin-bottom:14px"><div><div class="timer" id="tm">${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}</div><div class="small muted">Aim for about ${wordTarget(q)} words. A rough guide only.</div></div>
     <div class="row"><label class="small" for="tmin">Minutes</label><input type="number" id="tmin" min="1" max="180" value="${p.minutes||12}" style="width:74px"><button class="btn sm pri" id="tGo">Start</button><button class="btn sm" id="tRs">Reset</button></div></div>
   <div id="skel"></div>
   <div class="card check" style="margin-top:6px"><h2 class="sec" style="margin-top:0">After writing: self-review</h2><div id="chk"></div><div class="row sp"><span id="chs" class="small muted"></span><button class="btn sm" id="chRec">Record this score</button></div></div>
-  <div class="row" style="margin-top:16px"><button class="btn" id="pCopy">Copy outline</button><button class="btn" id="pDl">${ic('down',18)} Download (.md)</button></div>`;
+  <div class="row" style="margin-top:16px"><button class="btn" id="pCopy">Copy outline</button><button class="btn" id="pDl">${ic('down',18)} Download (.md)</button></div></div></details>`;
   $('#qEd').onclick=()=>questionModal(q,()=>render());
-  $('#qDel').onclick=async()=>{if(!await confirmBox('Delete this question and its answer plan?'))return;
-    q.deleted=true;q.updated=Date.now();await DB.put('questions',q);S.questions=S.questions.filter(x=>x.id!==q.id);
-    p.deleted=true;p.updated=Date.now();await DB.put('plans',p);S.plans=S.plans.filter(x=>x.id!==p.id);
+  $('#qDel').onclick=async()=>{if(!await confirmBox('Delete this question, its answers and its answer plan?'))return;
+    const now=Date.now();
+    q.deleted=true;q.updated=now;await DB.put('questions',q);S.questions=S.questions.filter(x=>x.id!==q.id);
+    p.deleted=true;p.updated=now;await DB.put('plans',p);S.plans=S.plans.filter(x=>x.id!==p.id);
+    const gone=S.answers.filter(a=>a.qid===q.id);gone.forEach(a=>{a.deleted=true;a.updated=now});await DB.putMany('answers',gone);S.answers=S.answers.filter(a=>a.qid!==q.id);
     location.hash='#/practise'};
+  $('#qPrompt').onclick=async()=>{try{await navigator.clipboard.writeText(claudePrompt(q));toast('Prompt copied. Paste it into Claude.')}catch(e){modal(`<h3>Prompt for Claude</h3><textarea style="min-height:260px">${esc(claudePrompt(q))}</textarea><div class="row" style="margin-top:12px"><button class="btn" onclick="closeModal()">Close</button></div>`)}};
+  $('#qPaste').onclick=()=>pasteAnswerModal(q,()=>render());
+  $('#qWrite').onclick=async()=>{
+    const a={id:'my-'+uid(),qid:q.id,kind:'mine',html:'',origin:'Written by me',words:0,created:Date.now()};
+    S.answers.push(a);mountAnswers();const card=$(`.anscard[data-aid="${a.id}"]`);if(card){card.scrollIntoView({block:'center'});startEdit(card,a,true)}
+  };
+  function mountAnswers(){
+    const all=answersFor(q.id);
+    const ail=all.filter(a=>a.kind==='ai'),ml=all.filter(a=>a.kind==='mine');
+    $('#aiList').innerHTML=ail.length?ail.map(a=>answerCard(a,q)).join(''):`<div class="card tight small muted" style="margin-bottom:8px">No model answer yet. Copy the prompt into Claude, then paste its answer back here.</div>`;
+    $('#mineList').innerHTML=ml.length?ml.map(a=>answerCard(a,q)).join(''):`<p class="small muted" style="margin-top:0">Write your own answer here to compare it with the model answer, or practise on paper with the timer below.</p>`;
+    all.forEach(a=>{const c=$(`.anscard[data-aid="${a.id}"]`);if(c)paintAnswer(c,a,q)});
+  }
+  function startEdit(card,a,fresh){
+    if(TTS.root)TTS.stop(true);
+    const body=$('.ansbody',card);
+    body.innerHTML=a.html||'';body.contentEditable='true';body.classList.add('qs');
+    if(!strip(a.html||''))body.setAttribute('data-ph',fresh?'Write your answer here. You can also paste text.':'Type here');
+    try{document.execCommand('defaultParagraphSeparator',false,'p')}catch(e){}
+    $('.anslegend',card).hidden=true;$('.anstools',card).hidden=true;$('.ansedit',card).hidden=false;
+    card._fresh=!!fresh;card._dirty=false;
+    richPasteInto(body,()=>{card._dirty=true});
+    body.addEventListener('input',()=>{body.removeAttribute('data-ph');card._dirty=true;const w=countWords(body.textContent);$('.ansmeter',card).textContent=`${w} words · aim ${wordTarget(q)}`});
+    body.focus();
+    CLEAN.push(()=>{if(body.isContentEditable&&card._dirty){a.html=sanitizeRich(body.innerHTML);a.words=countWords(strip(a.html));if(a.kind==='ai')a.mod=true;saveAnswer(a)}});
+  }
+  function endEdit(card,a,save){
+    const body=$('.ansbody',card);
+    if(save){a.html=sanitizeRich(body.innerHTML);a.words=countWords(strip(a.html));if(a.kind==='ai')a.mod=true}
+    body.contentEditable='false';card._dirty=false;
+    if(card._fresh&&!a.updated&&(!save||!strip(a.html))){S.answers=S.answers.filter(x=>x.id!==a.id);mountAnswers();return}
+    if(save)saveAnswer(a).then(()=>{toast('Answer saved');mountAnswers()});else mountAnswers();
+  }
+  mountAnswers();
+  const onAnsClick=async e=>{
+    const card=e.target.closest('.anscard');if(!card)return;
+    const a=byId(S.answers,card.dataset.aid);if(!a)return;
+    const ed=e.target.closest('[data-ed]');
+    if(ed){const m={'H3':['formatBlock','H3'],'Bold':['bold'],'Underline':['underline'],'Bullets':['insertUnorderedList'],'Numbers':['insertOrderedList'],'Clear format':['removeFormat'],'Undo':['undo']}[ed.dataset.ed];$('.ansbody',card).focus();document.execCommand(m[0],false,m[1]||null);card._dirty=true;return}
+    const b=e.target.closest('[data-act]');if(!b)return;
+    const act=b.dataset.act,body=$('.ansbody',card);
+    if(act==='listen'){if(!strip(body.innerHTML)){toast('Nothing to read yet');return}TTS.open(body,null,{noSummary:true,title:(a.kind==='ai'?'Model answer: ':'My answer: ')+q.text.slice(0,60)})}
+    else if(act==='hl'){S.settings.ansHL=S.settings.ansHL===false;saveSettings();mountAnswers()}
+    else if(act==='edit')startEdit(card,a,false);
+    else if(act==='save')endEdit(card,a,true);
+    else if(act==='cancel')endEdit(card,a,false);
+    else if(act==='copy')copyRich(body,a.kind==='ai'?'Model answer':'Your answer');
+    else if(act==='ver'){a.verified=!a.verified;await saveAnswer(a);mountAnswers();toast(a.verified?'Marked as verified':'Marked as an AI draft again')}
+    else if(act==='del'){if(!await confirmBox('Delete this answer?'))return;a.deleted=true;a.updated=Date.now();await DB.put('answers',a);S.answers=S.answers.filter(x=>x.id!==a.id);mountAnswers()}
+  };
+  ['#aiList','#mineList'].forEach(sel=>{const el=$(sel);el.addEventListener('click',onAnsClick);el.addEventListener('pointerdown',e=>{if(e.target.closest('.ansedit [data-ed]'))e.preventDefault()})});
   /* timer */
   const disp=()=>{$('#tm').textContent=`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`};
   $('#tmin').onchange=e=>{p.minutes=Math.max(1,Math.min(180,+e.target.value||12));left=p.minutes*60;disp();savePlan();drawSkel()};
@@ -3430,7 +3844,7 @@ function qDetail(q){
     qRes=NLP.search(q.text);const el=$('#qsug');if(!el||!qRes||!qRes.topics.length)return;
     const known=new Set(linked.map(t=>t.id)),hs=hsParam(qRes.stems),pick=qRes.topics.filter(g=>!known.has(g.t.id)).slice(0,5);
     if(!pick.length)return;
-    el.innerHTML=`<div class="card tight" style="margin-bottom:12px"><b>Notes that may help with this question</b><p class="small muted" style="margin:2px 0 6px">Found by searching your library for the ideas in the question.</p>${pick.map(g=>`<div style="margin:6px 0"><a href="#/topic/${g.t.id}/read?c=${g.passages[0].ci}&hs=${hs}"><b>${esc(g.t.title)}</b></a> <span class="tag">${esc(g.t.subject)}</span><div class="small muted">${g.passages[0].snip}</div></div>`).join('')}</div>`;
+    el.innerHTML=`<details class="ess"><summary>Notes that may help with this question <span class="cnt">${pick.length}</span></summary><div class="body">${pick.map(g=>`<div style="margin:6px 0"><a href="#/topic/${g.t.id}/read?c=${g.passages[0].ci}&hs=${hs}"><b>${esc(g.t.title)}</b></a> <span class="tag">${esc(g.t.subject)}</span><div class="small muted">${g.passages[0].snip}</div></div>`).join('')}</div></details>`;
   });
   drawSkel();
   const sk=$('#skel');
@@ -3463,6 +3877,229 @@ function qDetail(q){
   $('#chRec').onclick=()=>{const n=CHECK.filter((_,i)=>p.check[i]).length;(p.scores=p.scores||[]).push({at:Date.now(),score:n});p.check={};savePlan();drawChk();toast('Score recorded: '+n+'/'+CHECK.length)};
   $('#pCopy').onclick=async()=>{try{await navigator.clipboard.writeText(planText(q,p));toast('Outline copied')}catch(e){toast('Copy is blocked here. Use Download instead.',4000)}};
   $('#pDl').onclick=()=>saveFile('answer-plan-'+safeName(q.text.slice(0,40))+'.md',planText(q,p),'text/markdown');
+}
+function planText(q,p){
+  const lines=['# '+q.text,'',[paperLabel(q),q.directive,q.marks?q.marks+' marks':''].filter(Boolean).join(' · '),''];
+  SKEL.forEach(sec=>{const s=p.sections[sec.k];if(s&&s.on===false)return;lines.push('## '+sec.t);
+    if(sec.subs.length){Object.keys((s&&s.subs)||{}).forEach(k=>{lines.push('- '+k+(s.subs[k]?': '+s.subs[k].replace(/\n+/g,'; '):''))})}
+    else if(sec.k==='examples'){(p.exampleIds||[]).map(id=>byId(S.examples,id)).filter(Boolean).forEach(e=>lines.push('- '+e.title+(e.date?' ('+e.date+')':'')+(e.summary?': '+e.summary:'')))}
+    else if(sec.k==='diagram'){if(p.diagram)lines.push(p.diagram)}
+    else if(s&&s.text)lines.push(s.text);
+    lines.push('')});
+  return lines.join('\n');
+}
+
+/* ----- importing ----- */
+function importMenu(){
+  modal(`<h3>Import</h3>
+    <div class="card tight" style="margin-bottom:10px"><b>Question bank</b><p class="small muted" style="margin:4px 0 8px">Your question-bank.json: the syllabus tree, previous-year questions and probable questions. Importing again later adds new questions and updates changed ones, without duplicates. Your own questions, answers and attempts are never touched.</p><button class="btn sm pri" id="imB">Choose question-bank.json</button></div>
+    <div class="card tight"><b>Model answers from revision pages</b><p class="small muted" style="margin:4px 0 8px">Pick one or more revision sheets (.html). Each question and answer is matched to your question bank; you check any the app is unsure about.</p>
+    <label class="row small" style="gap:8px;margin-bottom:8px;align-items:flex-start"><input type="checkbox" id="imNotes" checked style="margin-top:3px"><span>Also save each page's notes (everything except the questions and answers) to the Library</span></label>
+    <button class="btn sm pri" id="imA">Choose revision pages</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="imX">Close</button></div>`,b=>{
+      $('#imX',b).onclick=closeModal;
+      const pick=(accept,multi,cb)=>{const i=document.createElement('input');i.type='file';i.accept=accept;i.multiple=multi;i.onchange=()=>{if(i.files.length)cb([...i.files])};i.click()};
+      $('#imB',b).onclick=()=>pick('.json,application/json',false,f=>importBank(f[0]));
+      $('#imA',b).onclick=()=>{const notes=$('#imNotes',b).checked;pick('.html,.htm,text/html',true,f=>importAnswers(f,notes))};
+    });
+}
+const BANK_FIELDS=['text','paper','chapter','subtopic','source','likelihood','basis','directive','repeatGroup','alsoRelevant','type'];
+async function importBank(file){
+  let d;
+  try{d=JSON.parse(await file.text())}catch(e){toast('That file is not valid JSON.',4000);return}
+  if(!d||!Array.isArray(d.papers)||!Array.isArray(d.questions)){toast('This does not look like a question-bank.json file.',4500);return}
+  const now=Date.now(),add=[],upd=[],kept=[];let same=0;
+  for(const x of d.questions){
+    if(!x||!x.id||!x.text)continue;
+    const cur=byId(S.questions,x.id);
+    if(!cur){add.push(Object.assign({topicIds:[],marks:'',year:''},pickFields(x),{id:x.id,bank:true,created:now,updated:now}));continue}
+    const fields=cur.mod?BANK_FIELDS.filter(f=>f!=='text'&&f!=='directive'):BANK_FIELDS,nx=pickFields(x);
+    const diff=fields.some(f=>JSON.stringify(cur[f]??null)!==JSON.stringify(nx[f]??null));
+    if(diff)(cur.mod?kept:upd).push({cur,x,fields});else same++;
+  }
+  const chs=d.papers.reduce((n,p)=>n+(p.chapters||[]).length,0),sts=d.papers.reduce((n,p)=>n+(p.chapters||[]).reduce((m,c)=>m+(c.subtopics||[]).length,0),0);
+  const pyq=add.filter(q=>q.source==='PYQ').length,prob=add.filter(q=>q.source==='Probable').length;
+  modal(`<h3>Import question bank</h3>
+    <p>${d.papers.length} papers, ${chs} chapters, ${sts} sub-topics.</p>
+    <ul class="small"><li><b>${add.length}</b> new question${add.length===1?'':'s'}${add.length?` (${pyq} previous-year, ${prob} probable)`:''}</li><li><b>${upd.length}</b> updated</li><li>${same} unchanged</li>${kept.length?`<li>${kept.length} you edited yourself: your wording is kept, only their chapter and tags are updated</li>`:''}</ul>
+    <p class="small muted">Your own questions, answers, plans and scores are not changed. A safety copy is taken first.</p>
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="ibOk">Import</button><button class="btn" id="ibNo">Cancel</button></div>`,b=>{
+      $('#ibNo',b).onclick=closeModal;
+      $('#ibOk',b).onclick=async()=>{
+        $('#ibOk',b).disabled=true;await snapshot();
+        const recs=d.papers.map(p=>({id:p.id,name:p.name,chapters:p.chapters||[],updated:now}));
+        for(const r of recs){const i=S.syllabus.findIndex(x=>x.id===r.id);if(i>=0)S.syllabus[i]=r;else S.syllabus.push(r)}
+        await DB.putMany('syllabus',recs);
+        const ch=[];
+        [...upd,...kept].forEach(({cur,x,fields})=>{const nx=pickFields(x);fields.forEach(f=>{cur[f]=nx[f]});cur.bank=true;cur.updated=now;ch.push(cur)});
+        S.questions.push(...add);
+        await DB.putMany('questions',[...add,...ch]);
+        closeModal();toast(`Imported: ${add.length} new, ${ch.length} updated`,4000);QF.tab='bank';
+        if(location.hash.startsWith('#/practise'))VIEWS.practise({});else location.hash='#/practise';
+      };
+    });
+}
+const pickFields=x=>{const o={};BANK_FIELDS.forEach(f=>{o[f]=x[f]??null});if(!Array.isArray(o.alsoRelevant))o.alsoRelevant=[];return o};
+
+/* matching revision-page questions to the bank */
+const MSTOP=new Set('a an the of in on and or to for with by is are was were be been as at from its it this that their his her into what how why which who whom whose do does did discuss examine explain critically analyse analyze evaluate describe comment elucidate justify suggest briefly brief write note notes account give state also any some your about between under over upon within other such these those there here can may might would should could will has have had not but than then them they its i ii iii iv v vi'.split(' '));
+const normQ=s=>String(s).toLowerCase().replace(/previous year question|probable question|\(\s*\d+\s*marks?\s*\)/g,' ').replace(/[^a-z0-9ఀ-౿]+/g,' ').replace(/\s+/g,' ').trim();
+const qTok=s=>new Set(normQ(s).split(' ').filter(w=>w.length>1&&!MSTOP.has(w)).map(w=>stem(w)));
+/* rare shared words count for more than common ones; a rephrased question that keeps its key terms still matches */
+function qSim(A,B,na,nb,W){
+  if(!A.size||!B.size)return 0;
+  const wt=w=>W?(W.get(w)||W.max):1;
+  let i=0,sa=0,sb=0;for(const w of A){const x=wt(w);sa+=x;if(B.has(w))i+=x}for(const w of B)sb+=wt(w);
+  const dice=2*i/(sa+sb),cover=i/Math.min(sa,sb);
+  let s=0.6*dice+0.4*cover;
+  if(na.length>20&&nb.length>20&&(na.includes(nb)||nb.includes(na)))s=Math.max(s,0.95);
+  return Math.min(1,s);
+}
+function qWeights(pool){
+  const df=new Map();pool.forEach(p=>p.t.forEach(w=>df.set(w,(df.get(w)||0)+1)));
+  const N=pool.length||1,W=new Map();df.forEach((d,w)=>W.set(w,Math.log(1+N/d)));W.max=Math.log(1+N);return W;
+}
+function parseRevisionPage(html,fname){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  doc.querySelectorAll('script,style,noscript,template').forEach(n=>n.remove());
+  /* short label paragraphs used as sub-headings ("Introduction", "Way forward") become real headings */
+  doc.querySelectorAll('p.lab,p.label,p.sub-head,p.subhead,div.lab').forEach(el=>{if(el.textContent.trim().length<70){const h=doc.createElement('h4');h.innerHTML=el.innerHTML;el.replaceWith(h)}});
+  let title=(doc.title||(doc.querySelector('h1')||{}).textContent||fname||'Revision sheet').replace(/\s+/g,' ').trim();
+  title=title.replace(/\s*[–—|-]\s*APPSC.*$/i,'').replace(/\s*\brevision( sheet)?\s*$/i,'').trim()||fname;
+  const items=[];let qaSection=null;
+  const clean=t=>t.replace(/\s+/g,' ').trim().replace(/^(?:Q\s?\d+|\d+)\s*[.:)\-–]?\s*/i,'').trim();
+  let blocks=[...doc.querySelectorAll('.qa')].filter(el=>!el.parentElement||!el.parentElement.closest('.qa'));
+  blocks.forEach(el=>{
+    const h=el.querySelector('h1,h2,h3,h4,h5,h6');if(!h)return;
+    const hc=h.cloneNode(true);const srcTag=((hc.querySelector('.src')||{}).textContent||'').trim();
+    hc.querySelectorAll('.badge,.src,button,.noexp').forEach(n=>n.remove());
+    const qtext=clean(hc.textContent);if(qtext.length<8)return;
+    let ah;const ans=el.querySelector('.ans');
+    if(ans)ah=ans.innerHTML;else{const c=el.cloneNode(true);const hh=c.querySelector(h.tagName);let n=c.firstChild;while(n&&n!==hh){const nx=n.nextSibling;n.remove();n=nx}if(hh)hh.remove();c.querySelectorAll('button,.noexp,.sec-tools').forEach(n=>n.remove());ah=c.innerHTML}
+    items.push({qtext,html:sanitizeRich(ah),srcTag});
+    if(!qaSection)qaSection=el.closest('section')||el.parentElement;
+  });
+  if(!items.length){
+    const hd=[...doc.querySelectorAll('h1,h2,h3')].find(h=>/model answers?|questions?\s+(?:and|with)\s+(?:model\s+)?answers?|probable questions/i.test(h.textContent));
+    if(hd){
+      qaSection=hd.closest('section')||hd.parentElement;
+      const lvl=+hd.tagName[1];let cur=null;
+      let n=hd.nextElementSibling;
+      while(n){
+        if(/^H[1-6]$/.test(n.tagName)&&+n.tagName[1]<=lvl)break;
+        if(/^H[1-6]$/.test(n.tagName)){if(cur)items.push(cur);const hc=n.cloneNode(true);hc.querySelectorAll('.badge,button').forEach(x=>x.remove());cur={qtext:clean(hc.textContent),html:'',srcTag:''}}
+        else if(cur)cur.html+=n.outerHTML;
+        n=n.nextElementSibling;
+      }
+      if(cur)items.push(cur);
+      items.forEach(it=>{it.html=sanitizeRich(it.html)});
+    }
+  }
+  const valid=items.filter(it=>it.qtext.length>=8&&strip(it.html).length>20);
+  /* the rest of the page becomes a Library note */
+  const body=doc.body.cloneNode(true);
+  if(qaSection){const id=qaSection.id;const tgt=id?body.querySelector('#'+CSS.escape(id)):null;if(tgt)tgt.remove();else body.querySelectorAll('.qa').forEach(n=>n.remove())}
+  body.querySelectorAll('nav,button,.noexp,.sec-tools,.tools,[role="toolbar"],#ov,.toast,footer,input,select,textarea,dialog').forEach(n=>n.remove());
+  return{title,items:valid,notesHtml:body.innerHTML};
+}
+async function importAnswers(files,saveNotes){
+  const pages=[];
+  for(const f of files){try{pages.push(Object.assign(parseRevisionPage(await f.text(),f.name.replace(/\.html?$/i,'')),{file:f.name}))}catch(e){toast('Could not read '+f.name,4000)}}
+  const items=[];pages.forEach(pg=>pg.items.forEach((it,i)=>items.push(Object.assign(it,{page:pg,idx:i}))));
+  if(!items.length){toast('No questions and answers were found in those pages.',4500);return}
+  const pool=S.questions.map(q=>({q,t:qTok(q.text),n:normQ(q.text)})),W=qWeights(pool);
+  const score=(it,chap)=>{const t=qTok(it.qtext),n=normQ(it.qtext);
+    return pool.map(p=>({q:p.q,s:Math.min(1,qSim(t,p.t,n,p.n,W)+(chap&&p.q.chapter===chap?0.08:0))})).sort((a,b)=>b.s-a.s).slice(0,4)};
+  const decide=(it,sc)=>{
+    it.cands=sc.filter(c=>c.s>=0.35);
+    const b1=sc[0]||{s:0},b2=sc[1]||{s:0};
+    it.auto=b1.s>=0.95||(b1.s>=0.82&&b1.s-b2.s>=0.1);
+    it.choice=it.auto?b1.q.id:(it.cands.length&&it.cands[0].s>=0.5?it.cands[0].q.id:'new');
+  };
+  items.forEach(it=>decide(it,score(it,'')));
+  /* second pass: questions on one page usually belong to one chapter, so favour it */
+  pages.forEach(pg=>{const cnt=new Map();items.filter(x=>x.page===pg&&x.auto).forEach(x=>{const q=byId(S.questions,x.choice);if(q&&q.chapter)cnt.set(q.chapter,(cnt.get(q.chapter)||0)+1)});
+    const top=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0];if(top)items.filter(x=>x.page===pg&&!x.auto).forEach(x=>decide(x,score(x,top[0])))});
+  items.forEach(it=>{
+    it.aid='ai-'+hash36(normQ(it.qtext)+'|'+normQ(it.page.title));
+    const ex=byId(S.answers,it.aid);it.exists=!!ex;it.mod=!!(ex&&ex.mod);
+  });
+  /* guess each page's chapter from its confident matches, for new questions */
+  pages.forEach(pg=>{const cnt=new Map();items.filter(it=>it.page===pg&&it.auto).forEach(it=>{const q=byId(S.questions,it.choice);if(q&&q.chapter)cnt.set(q.chapter,(cnt.get(q.chapter)||0)+1)});
+    pg.chapter=[...cnt.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0])[0]||'';
+    const c=syl().ch.get(pg.chapter);pg.paper=c?c.paper:''});
+  items.forEach(it=>{const top=it.cands[0]&&byId(S.questions,it.cands[0].q.id);it.nch=it.page.chapter||(top&&top.chapter)||'';it.nst=(top&&top.chapter===it.nch&&top.subtopic)||'';});
+  answerReview(items,pages,saveNotes);
+}
+function answerReview(items,pages,saveNotes){
+  const Y=syl(),auto=items.filter(it=>it.auto),rev=items.filter(it=>!it.auto);
+  const chSel=(it)=>`<select data-k="nch">${[...Y.ch.values()].map(c=>`<option value="${c.id}" ${it.nch===c.id?'selected':''}>${esc(paperById(c.paper).n)} · ${esc(chapterName(c.id))}</option>`).join('')}</select>`;
+  const stSel=(it)=>`<select data-k="nst"><option value="">Sub-topic not set</option>${[...Y.st.values()].filter(s=>s.chapter===it.nch).map(s=>`<option value="${s.id}" ${it.nst===s.id?'selected':''}>${esc(s.title)}</option>`).join('')}</select>`;
+  const row=(it,i)=>`<div class="card tight revit" data-i="${i}" style="margin-bottom:10px">
+    <div class="small muted">${esc(it.page.title)}${it.srcTag?' · '+esc(it.srcTag):''}${it.exists?' · already imported'+(it.mod?' (you edited it, so it will be kept)':''):''}</div>
+    <div style="margin:4px 0 8px"><b>${esc(it.qtext)}</b></div>
+    ${it.cands.map(c=>`<label class="row small" style="gap:8px;align-items:flex-start;margin:4px 0"><input type="radio" name="r${i}" value="${esc(c.q.id)}" ${it.choice===c.q.id?'checked':''} style="margin-top:3px"><span>${esc(c.q.text)} <span class="muted">(${Math.round(c.s*100)}% match · ${esc(chapterName(c.q.chapter)||paperLabel(c.q))})</span></span></label>`).join('')}
+    <label class="row small" style="gap:8px;margin:4px 0"><input type="radio" name="r${i}" value="new" ${it.choice==='new'?'checked':''}><span>Add as a new question</span></label>
+    <div class="newq" ${it.choice==='new'?'':'hidden'} style="margin:4px 0 4px 26px">${Y.ch.size?chSel(it)+stSel(it):'<span class="small muted">Import your question bank first to place new questions by chapter.</span>'}</div>
+    <label class="row small" style="gap:8px;margin:4px 0"><input type="radio" name="r${i}" value="skip" ${it.choice==='skip'?'checked':''}><span>Skip this one</span></label></div>`;
+  modal(`<h3>Check the matches</h3>
+    <p class="small">${items.length} answer${items.length===1?'':'s'} found in ${pages.length} page${pages.length===1?'':'s'}. <b>${auto.length}</b> matched your question bank with confidence${rev.length?`; please check the other <b>${rev.length}</b>.`:'.'}</p>
+    ${auto.length?`<details class="ess"><summary>Matched automatically <span class="cnt">${auto.length}</span></summary><div class="body small">${auto.map(it=>{const q=byId(S.questions,it.choice);return `<div style="margin:6px 0">${esc(it.qtext)}<br><span class="muted">→ ${esc(chapterName(q.chapter)||paperLabel(q))}${it.exists?' · already imported':''}</span></div>`}).join('')}</div></details>`:''}
+    <div id="revList" style="max-height:52vh;overflow:auto;margin-top:8px">${rev.map(it=>row(it,items.indexOf(it))).join('')}</div>
+    <p class="small muted">Answers are saved as <b>AI draft – verify</b> until you mark them verified.</p>
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="arOk">Import answers</button><button class="btn" id="arNo">Cancel</button></div>`,b=>{
+      $('#arNo',b).onclick=closeModal;
+      const list=$('#revList',b);
+      list.addEventListener('change',e=>{
+        const box=e.target.closest('.revit');if(!box)return;const it=items[+box.dataset.i];
+        if(e.target.type==='radio'){it.choice=e.target.value;$('.newq',box).hidden=it.choice!=='new'}
+        if(e.target.dataset.k==='nch'){it.nch=e.target.value;it.nst='';const ss=$('[data-k="nst"]',box);ss.outerHTML=stSel(it)}
+        if(e.target.dataset.k==='nst')it.nst=e.target.value;
+      });
+      $('#arOk',b).onclick=async()=>{$('#arOk',b).disabled=true;await applyAnswerImport(items,pages,saveNotes);};
+    });
+}
+async function applyAnswerImport(items,pages,saveNotes){
+  await snapshot();
+  const now=Date.now(),newQs=[],touchedQs=new Map(),ans=[];let added=0,updated=0,skipped=0,keptMine=0;
+  /* notes first, so questions can link to them */
+  const noteFor=new Map();
+  if(saveNotes){
+    for(const pg of pages){
+      if(!strip(pg.notesHtml)||!pg.items.length)continue;
+      let t=S.topics.find(x=>x.title===pg.title);
+      if(!t){
+        const p=paperById(pg.paper);
+        t={id:uid(),title:pg.title,subject:p?p.n+' – '+p.t:'Revision sheets',unit:pg.chapter?chapterName(pg.chapter):'',tags:['revision sheet'],html:sanitize(pg.notesHtml)||'<p></p>',qs:sanitizeRich(pg.notesHtml),summary:'',created:now,updated:now,lastOpened:0,progress:0,exampleIds:[],source:pg.file};
+        S.topics.push(t);await DB.put('topics',t);
+      }
+      noteFor.set(pg,t);
+    }
+  }
+  for(const it of items){
+    if(it.choice==='skip'){skipped++;continue}
+    let q;
+    if(it.choice==='new'){
+      const c=syl().ch.get(it.nch);
+      const dir=(DIRECTIVES.find(d=>new RegExp('^'+escRe(d)+'\\b','i').test(it.qtext))||(it.qtext.match(/\b(Discuss|Examine|Explain|Analyse|Analyze|Evaluate|Describe|Comment|Elucidate|Justify|Assess|Distinguish|Define)\b/)||[])[1]||'');
+      q={id:'my-'+uid(),text:it.qtext,paper:c?c.paper:'',chapter:c?c.id:'',subtopic:it.nst||'',source:/previous year/i.test(it.srcTag)?'PYQ':'Probable',likelihood:null,basis:'From revision page: '+it.page.title,directive:dir,repeatGroup:null,alsoRelevant:[],type:c&&c.paper==='P1'?'essay':'question',topicIds:[],marks:'',year:'',created:now,updated:now};
+      S.questions.push(q);newQs.push(q);
+    }else q=byId(S.questions,it.choice);
+    if(!q){skipped++;continue}
+    const t=noteFor.get(it.page);
+    if(t&&!(q.topicIds||[]).includes(t.id)){q.topicIds=[...(q.topicIds||[]),t.id];q.updated=now;touchedQs.set(q.id,q)}
+    const cur=byId(S.answers,it.aid);
+    if(cur&&cur.mod){keptMine++;continue}
+    if(cur&&cur.qid===q.id&&cur.html===it.html){continue}
+    const a=Object.assign(cur||{id:it.aid,created:now,verified:false},{qid:q.id,kind:'ai',html:it.html,origin:'Claude · '+it.page.title,words:countWords(strip(it.html)),updated:now});
+    if(!cur){S.answers.push(a);added++}else updated++;
+    ans.push(a);
+  }
+  await DB.putMany('answers',ans);
+  await DB.putMany('questions',[...newQs,...[...touchedQs.values()].filter(q=>!newQs.includes(q))]);
+  closeModal();
+  toast(`${added} answer${added===1?'':'s'} added${updated?`, ${updated} updated`:''}${newQs.length?`, ${newQs.length} new question${newQs.length===1?'':'s'}`:''}${noteFor.size?`, ${noteFor.size} note${noteFor.size===1?'':'s'} in the Library`:''}${keptMine?`. ${keptMine} you had edited were kept`:''}.`,6000);
+  QF.tab='model';if(location.hash.startsWith('#/practise'))VIEWS.practise({});else location.hash='#/practise';
 }
 
 /* ---------- more: settings, backup ---------- */
@@ -3560,7 +4197,7 @@ VIEWS.more=()=>{
     if(!await confirmBox('Delete all topics, examples, questions and settings from this browser? Download a backup first if you might want them.','Delete everything'))return;
     if(!await confirmBox('This cannot be undone. Really delete everything?','Yes, delete'))return;
     await snapshot();
-    for(const k of ['topics','examples','questions','plans','links']){
+    for(const k of DATA_KEYS){
       for(const row of S[k]){row.deleted=true;row.updated=Date.now();await DB.put(k,row)}
       S[k]=[];
     }
