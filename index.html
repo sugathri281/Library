@@ -4148,31 +4148,54 @@ function parseRevisionPage(html,fname){
   title=title.replace(/\s*[–—|-]\s*APPSC.*$/i,'').replace(/\s*\brevision( sheet)?\s*$/i,'').trim()||fname;
   const items=[];let qaSection=null;
   const clean=t=>t.replace(/\s+/g,' ').trim().replace(/^(?:Q\s?\d+|\d+)\s*[.:)\-–]?\s*/i,'').trim();
-  let blocks=[...doc.querySelectorAll('.qa')].filter(el=>!el.parentElement||!el.parentElement.closest('.qa'));
+  const TAGSEL='.badge,.src,.tag,.qtag,.pill,.chip,button,.noexp';
+  const JUNK='button,.noexp,.sec-tools,.tools,.qbtns,[data-noread],.noread,[role="toolbar"],.tag,.qtag';
+  const HEAD_RX=/model answers?|questions?\s+(?:and|with)\s+(?:\d+[- ]word\s+)?(?:model\s+)?answers?|probable questions|high[- ]probability questions|important questions/i;
+  /* one block per question: <x class="qa">, <article class="q">, or any article/details holding a question heading and an answer */
+  const isBlock=el=>{const h=el.querySelector('h2,h3,h4,h5,summary');return !!h&&countWords(el.textContent)>=40};
+  let blocks=[...doc.querySelectorAll('.qa,.q,.question,.qblock,article,details')].filter(isBlock);
+  blocks=blocks.filter(el=>!blocks.some(o=>o!==el&&o.contains(el)));            // outermost only
+  if(blocks.length>1){
+    const inQA=blocks.filter(el=>{const sec=el.closest('section');const h=sec&&sec.querySelector('h1,h2');return el.matches('.qa,.q,.question,.qblock')||(h&&HEAD_RX.test(h.textContent))});
+    blocks=inQA.length?inQA:[];
+  }else blocks=blocks.filter(el=>el.matches('.qa,.q,.question,.qblock'));
   blocks.forEach(el=>{
-    const h=el.querySelector('h1,h2,h3,h4,h5,h6');if(!h)return;
-    const hc=h.cloneNode(true);const srcTag=((hc.querySelector('.src')||{}).textContent||'').trim();
-    hc.querySelectorAll('.badge,.src,button,.noexp').forEach(n=>n.remove());
+    const h=el.querySelector('h3')||el.querySelector('h2,h4,h5,summary');if(!h)return;
+    const hc=h.cloneNode(true);
+    const tagEl=el.querySelector('.src,.tag,.qtag');const srcTag=((tagEl||{}).textContent||'').replace(/\s+/g,' ').trim();
+    hc.querySelectorAll(TAGSEL).forEach(n=>n.remove());
     const qtext=clean(hc.textContent);if(qtext.length<8)return;
-    let ah;const ans=el.querySelector('.ans');
-    if(ans)ah=ans.innerHTML;else{const c=el.cloneNode(true);const hh=c.querySelector(h.tagName);let n=c.firstChild;while(n&&n!==hh){const nx=n.nextSibling;n.remove();n=nx}if(hh)hh.remove();c.querySelectorAll('button,.noexp,.sec-tools').forEach(n=>n.remove());ah=c.innerHTML}
+    let ah;const ans=el.querySelector('.ans,.answer');
+    if(ans)ah=ans.innerHTML;
+    else{
+      const c=el.cloneNode(true);
+      const hh=c.querySelector(h.tagName===h.tagName?(h.tagName.toLowerCase()):'h3');
+      const target=[...c.querySelectorAll(h.tagName.toLowerCase())].find(x=>x.textContent===h.textContent)||hh;
+      /* drop the heading, and its wrapper when that wrapper only holds the heading and its labels */
+      let w=target;
+      while(w&&w.parentElement&&w.parentElement!==c){const p=w.parentElement,rest=p.cloneNode(true);[...rest.querySelectorAll(h.tagName.toLowerCase()+','+TAGSEL)].forEach(n=>n.remove());if(rest.textContent.trim())break;w=p}
+      if(w)w.remove();
+      c.querySelectorAll(JUNK).forEach(n=>n.remove());
+      ah=c.innerHTML;
+    }
     items.push({qtext,html:sanitizeRich(ah),srcTag});
     if(!qaSection)qaSection=el.closest('section')||el.parentElement;
   });
   if(!items.length){
-    const hd=[...doc.querySelectorAll('h1,h2,h3')].find(h=>/model answers?|questions?\s+(?:and|with)\s+(?:model\s+)?answers?|probable questions/i.test(h.textContent));
+    /* no question blocks: split the answers section at each question heading */
+    const hd=[...doc.querySelectorAll('h1,h2,h3')].find(h=>HEAD_RX.test(h.textContent));
     if(hd){
       qaSection=hd.closest('section')||hd.parentElement;
-      const lvl=+hd.tagName[1];let cur=null;
-      let n=hd.nextElementSibling;
-      while(n){
-        if(/^H[1-6]$/.test(n.tagName)&&+n.tagName[1]<=lvl)break;
-        if(/^H[1-6]$/.test(n.tagName)){if(cur)items.push(cur);const hc=n.cloneNode(true);hc.querySelectorAll('.badge,button').forEach(x=>x.remove());cur={qtext:clean(hc.textContent),html:'',srcTag:''}}
-        else if(cur)cur.html+=n.outerHTML;
-        n=n.nextElementSibling;
-      }
-      if(cur)items.push(cur);
-      items.forEach(it=>{it.html=sanitizeRich(it.html)});
+      const lvl=+hd.tagName[1];
+      const heads=[...qaSection.querySelectorAll('h2,h3,h4')].filter(x=>x!==hd&&+x.tagName[1]>lvl&&(hd.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING));
+      const qlvl=heads.length?Math.min(...heads.map(x=>+x.tagName[1])):0;
+      const qh=heads.filter(x=>+x.tagName[1]===qlvl);
+      qh.forEach((x,i)=>{
+        const hc=x.cloneNode(true);hc.querySelectorAll(TAGSEL).forEach(n=>n.remove());
+        const r=doc.createRange();r.setStartAfter(x);if(qh[i+1])r.setEndBefore(qh[i+1]);else r.setEndAfter(qaSection.lastChild);
+        const box=doc.createElement('div');box.appendChild(r.cloneContents());box.querySelectorAll(JUNK).forEach(n=>n.remove());
+        items.push({qtext:clean(hc.textContent),html:sanitizeRich(box.innerHTML),srcTag:''});
+      });
     }
   }
   const valid=items.filter(it=>it.qtext.length>=8&&strip(it.html).length>20);
@@ -4288,7 +4311,7 @@ async function applyAnswerImport(items,pages,saveNotes){
     if(it.choice==='new'){
       const c=syl().ch.get(it.nch);
       const dir=(DIRECTIVES.find(d=>new RegExp('^'+escRe(d)+'\\b','i').test(it.qtext))||(it.qtext.match(/\b(Discuss|Examine|Explain|Analyse|Analyze|Evaluate|Describe|Comment|Elucidate|Justify|Assess|Distinguish|Define)\b/)||[])[1]||'');
-      q={id:'my-'+uid(),text:it.qtext,paper:c?c.paper:'',chapter:c?c.id:'',subtopic:it.nst||'',source:/previous year/i.test(it.srcTag)?'PYQ':'Probable',likelihood:null,basis:'From revision page: '+it.page.title,directive:dir,repeatGroup:null,alsoRelevant:[],type:c&&c.paper==='P1'?'essay':'question',topicIds:[],marks:'',year:'',created:now,updated:now};
+      q={id:'my-'+uid(),text:it.qtext,paper:c?c.paper:'',chapter:c?c.id:'',subtopic:it.nst||'',source:/previous year|\bPYQ\b/i.test(it.srcTag)?'PYQ':'Probable',likelihood:null,basis:'From revision page: '+it.page.title,directive:dir,repeatGroup:null,alsoRelevant:[],type:c&&c.paper==='P1'?'essay':'question',topicIds:[],marks:'',year:'',created:now,updated:now};
       S.questions.push(q);newQs.push(q);
     }else q=byId(S.questions,it.choice);
     if(!q){skipped++;continue}
