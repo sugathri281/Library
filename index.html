@@ -257,6 +257,44 @@ body.has-player main#view{padding-bottom:calc(var(--nav-h) + 200px)}
 .pick button{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 12px;margin:0 0 6px}
 .pick button:hover{border-color:var(--brand)}
 
+/* car audio */
+.carplayer{padding:14px}
+#carNow{min-height:96px}
+#carNow .cnt{font:700 17px var(--serif);line-height:1.35;margin:2px 0 6px}
+#carNow .cline{font-size:16px;line-height:1.5;color:var(--ink);background:var(--surface2);border-radius:10px;padding:8px 10px}
+#carSeek{width:100%;margin:12px 0 4px}
+#carRate{width:auto;display:inline-block;min-height:36px;padding:4px 8px}
+.carctl{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.carctl button{width:58px;height:58px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:700}
+.carctl .pp{width:78px;height:78px;background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.caritem{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.caritem.now{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+.caritem .cit{font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* practise: tabs, revision sheets, note sub-window */
+.qtabs{display:flex;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.qtabs::-webkit-scrollbar{display:none}
+.qtabs button{flex:none;white-space:nowrap;padding:8px 12px}
+.shrow{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px;margin:0 0 8px}
+.shlink{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:8px 10px;margin-top:8px;color:var(--ink);font:600 14.5px var(--ui)}
+.shlink:hover{border-color:var(--brand)}
+#npanel{position:fixed;inset:0;z-index:60;background:rgba(10,20,26,.5);display:none}
+#npanel.show{display:block}
+#npanel .npbox{position:absolute;left:0;right:0;bottom:0;top:calc(10px + env(safe-area-inset-top,0px));background:var(--bg);border-radius:16px 16px 0 0;display:flex;flex-direction:column;box-shadow:0 -6px 30px rgba(0,0,0,.25)}
+@media (min-width:900px){#npanel .npbox{left:auto;top:0;width:min(760px,58vw);border-radius:0}}
+#npanel .nphd{display:flex;align-items:center;gap:8px;padding:10px 12px 4px}
+#npanel #npS{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#npanel .npctl .btn.sm{min-height:36px;padding:4px 10px}
+#npanel .npctl .seg button{min-height:36px;padding:4px 10px}
+#npanel .npt{font:700 17px var(--serif);line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#npanel .npctl{padding:4px 12px 8px;gap:6px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#npanel .npsc{flex:1;overflow:auto;padding:14px 16px calc(var(--nav-h) + 190px);-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#npanel .reader.np-qs{border:0;padding:0;background:transparent}
+body.panel-open{overflow:hidden}
+body.panel-open #player{z-index:65}
+body.panel-open #rateBox{z-index:66}
+body.panel-open #lfh{display:none}
+.reader.qs svg{max-width:100%;height:auto}
+.reader.qs [data-sheet-root]{max-width:100%}
 /* practise: question bank */
 .hscroll{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .hscroll::-webkit-scrollbar{display:none}
@@ -422,14 +460,14 @@ const DEFAULT_SET={ansHL:true,legacyDone:false,autoEx:true,syn:'',theme:'auto',a
   legend:{d:'Definition',f:'Fact / data',e:'Example / case study',w:'Warning / exception',k:'Answer keyword'}};
 const S={topics:[],examples:[],questions:[],plans:[],links:[],answers:[],syllabus:[],settings:JSON.parse(JSON.stringify(DEFAULT_SET))};
 const DATA_KEYS=['topics','examples','questions','plans','links','answers','syllabus'];
-const STORES=[...DATA_KEYS,'meta'];
+const STORES=[...DATA_KEYS,'meta','audio'];   // audio: device-only, never synced or backed up
 
 /* ---------- storage (IndexedDB, local to this browser) ---------- */
 const DB={db:null,mem:false,
   async open(){
     try{
       this.db=await new Promise((res,rej)=>{
-        const r=indexedDB.open('studylib',2);
+        const r=indexedDB.open('studylib',3);
         r.onupgradeneeded=()=>{STORES.forEach(n=>{if(!r.result.objectStoreNames.contains(n))r.result.createObjectStore(n,{keyPath:'id'})})};
         r.onsuccess=()=>{const db=r.result;db.onversionchange=()=>{db.close();try{toast('Study Library was updated in another tab. Reloading…',3000)}catch(e){}setTimeout(()=>location.reload(),1200)};res(db)};
         r.onerror=()=>rej(r.error);
@@ -695,8 +733,8 @@ function sanitize(html){
 /* ---------- rich sanitizer (Quick summary paste: keeps real colours, tables, formatting) ---------- */
 const RICH_ALLOW=new Set(['H1','H2','H3','H4','H5','H6','P','DIV','SPAN','BR','HR','UL','OL','LI','STRONG','EM','U','S','MARK','SMALL','SUP','SUB','TABLE','THEAD','TBODY','TFOOT','TR','TH','TD','COLGROUP','COL','BLOCKQUOTE','PRE','CODE','A','IMG','FIGURE','FIGCAPTION']);
 const RICH_TAGMAP={B:'STRONG',I:'EM',STRIKE:'S',DEL:'S',CAPTION:'P'};
-const RICH_DROP=new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','NOSCRIPT','HEAD','TITLE','META','LINK','FORM','BUTTON','INPUT','SELECT','TEXTAREA','CANVAS','VIDEO','AUDIO','SVG','FOREIGNOBJECT','USE','APPLET']);
-const STYLE_PROP_RX=/^(color|background|background-color|background-image|background-clip|-webkit-background-clip|-webkit-text-fill-color|border|border-[a-z]+(-[a-z]+)?|border-radius|padding|padding-[a-z]+|margin|margin-[a-z]+|width|min-width|max-width|height|min-height|max-height|display|flex|flex-[a-z]+|justify-content|align-items|align-content|gap|row-gap|column-gap|text-align|vertical-align|font-weight|font-style|font-size|font-family|line-height|letter-spacing|text-decoration|text-decoration-color|text-transform|white-space|box-shadow|opacity|overflow-x|overflow-wrap|word-break|border-collapse|border-spacing|table-layout|list-style|list-style-type)$/;
+const RICH_DROP=new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','NOSCRIPT','HEAD','TITLE','META','LINK','FORM','BUTTON','INPUT','SELECT','TEXTAREA','CANVAS','VIDEO','AUDIO','FOREIGNOBJECT','USE','APPLET']);
+const STYLE_PROP_RX=/^(grid-template-columns|grid-column|grid-row|grid-auto-flow|place-items|box-sizing|box-shadow|text-decoration-line|text-decoration-style|list-style-position|border-collapse|color|background|background-color|background-image|background-clip|-webkit-background-clip|-webkit-text-fill-color|border|border-[a-z]+(-[a-z]+)?|border-radius|padding|padding-[a-z]+|margin|margin-[a-z]+|width|min-width|max-width|height|min-height|max-height|display|flex|flex-[a-z]+|justify-content|align-items|align-content|gap|row-gap|column-gap|text-align|vertical-align|font-weight|font-style|font-size|font-family|line-height|letter-spacing|text-decoration|text-decoration-color|text-transform|white-space|box-shadow|opacity|overflow-x|overflow-wrap|word-break|border-collapse|border-spacing|table-layout|list-style|list-style-type)$/;
 function safeStyle(str){
   if(!str)return '';
   const out=[];
@@ -710,14 +748,134 @@ function safeStyle(str){
   }
   return out.join(';');
 }
+/* safe SVG subset for diagrams in pasted or imported summaries */
+const SVG_NS='http://www.w3.org/2000/svg';
+const SVG_TAGS=new Set(['svg','g','path','rect','circle','ellipse','line','polyline','polygon','text','tspan','defs','marker','title','desc','lineargradient','radialgradient','stop','clippath']);
+const SVG_ATTR=/^(viewbox|preserveaspectratio|width|height|x|y|x1|y1|x2|y2|dx|dy|cx|cy|r|rx|ry|d|points|fill|fill-opacity|fill-rule|stroke|stroke-width|stroke-opacity|stroke-dasharray|stroke-linecap|stroke-linejoin|stroke-miterlimit|opacity|transform|text-anchor|dominant-baseline|alignment-baseline|font-size|font-weight|font-family|font-style|letter-spacing|marker-start|marker-mid|marker-end|markerwidth|markerheight|refx|refy|orient|markerunits|offset|stop-color|stop-opacity|gradientunits|x1|y1|clip-path|textlength|lengthadjust|role|aria-label)$/;
+function svgClean(src,idp){
+  const name=src.localName.toLowerCase();
+  if(!SVG_TAGS.has(name))return null;
+  const real={lineargradient:'linearGradient',radialgradient:'radialGradient',clippath:'clipPath'}[name]||name;
+  const el=document.createElementNS(SVG_NS,real);
+  for(const a of [...src.attributes]){
+    const n=a.name.toLowerCase();let v=a.value;
+    if(n==='id'){if(/^[\w-]{1,60}$/.test(v))el.setAttribute('id',v.startsWith(idp)?v:idp+v);continue}
+    if(n==='style'){const s=svgStyle(v);if(s)el.setAttribute('style',s);continue}
+    if(!SVG_ATTR.test(n)||v.length>4000)continue;
+    if(/javascript:|expression\(|<|>/i.test(v))continue;
+    if(/url\(/i.test(v)){if(!/^url\(\s*['"]?#[\w-]+['"]?\s*\)$/i.test(v.trim()))continue;v=v.replace(/#([\w-]+)/,(m,id)=>'#'+(id.startsWith(idp)?id:idp+id))}
+    const fixed={viewbox:'viewBox',preserveaspectratio:'preserveAspectRatio',markerwidth:'markerWidth',markerheight:'markerHeight',refx:'refX',refy:'refY',markerunits:'markerUnits',gradientunits:'gradientUnits',textlength:'textLength',lengthadjust:'lengthAdjust'}[n]||n;
+    el.setAttribute(fixed,v);
+  }
+  for(const c of [...src.childNodes]){
+    if(c.nodeType===3){el.appendChild(document.createTextNode(c.data));continue}
+    if(c.nodeType!==1)continue;
+    const k=svgClean(c,idp);if(k)el.appendChild(k);
+  }
+  if(name==='svg'){
+    el.removeAttribute('x');el.removeAttribute('y');
+    if(!el.getAttribute('id'))el.setAttribute('id',idp+'root');
+    if(!el.getAttribute('viewBox')){const w=parseFloat(src.getAttribute('width')),h=parseFloat(src.getAttribute('height'));if(w&&h)el.setAttribute('viewBox',`0 0 ${w} ${h}`)}
+    el.setAttribute('style',(el.getAttribute('style')?el.getAttribute('style')+';':'')+'max-width:100%;height:auto');
+    if(el.getAttribute('viewBox'))el.removeAttribute('height');
+    el.setAttribute('width',el.getAttribute('viewBox')?(el.getAttribute('viewBox').split(/[\s,]+/)[2]||'100%'):'100%');
+  }
+  return el;
+}
+function svgStyle(str){
+  const out=[];
+  for(const decl of String(str).split(';')){
+    const ix=decl.indexOf(':');if(ix<1)continue;
+    const p=decl.slice(0,ix).trim().toLowerCase(),v=decl.slice(ix+1).trim();
+    if(!/^(fill|stroke|stroke-width|stroke-dasharray|stroke-linecap|stroke-linejoin|opacity|fill-opacity|stroke-opacity|font-size|font-weight|font-family|font-style|text-anchor|dominant-baseline|max-width|height|width|display)$/.test(p))continue;
+    if(/url\(|expression|javascript|<|>/i.test(v)||v.length>200)continue;
+    out.push(p+':'+v.replace(/"/g,"'"));
+  }
+  return out.join(';');
+}
+
+/* Run a saved web page (for example a Claude revision sheet) in a locked-down frame so its own scripts can draw
+   diagrams, then copy out the result with its look written into inline styles. The page cannot reach the app:
+   the frame has no same-origin access, no pop-ups and no forms, and only a plain HTML string comes back. */
+const CAPTURE_JS=`(function(){
+ var INH=['color','font-family','font-size','font-weight','font-style','line-height','text-align','letter-spacing','text-transform','white-space','list-style-type'];
+ var OWN=['background-color','background-image','border-top','border-right','border-bottom','border-left','border-top-left-radius','border-top-right-radius','border-bottom-left-radius','border-bottom-right-radius','padding-top','padding-right','padding-bottom','padding-left','margin-top','margin-bottom','margin-left','margin-right','text-decoration-line','text-decoration-style','text-decoration-color','box-shadow','flex-direction','flex-wrap','justify-content','align-items','gap','vertical-align','border-collapse'];
+ var SVGP=['fill','stroke','stroke-width','stroke-dasharray','font-size','font-weight','font-family','opacity','text-anchor','dominant-baseline'];
+ function tracks(v){var n=String(v).trim().split(/\\s+(?![^(]*\\))/).filter(Boolean).length;return n>0?'repeat('+n+',minmax(0,1fr))':''}
+ function run(){
+  try{
+   var body=document.body,all=[].slice.call(body.querySelectorAll('*')),cs=new Map();
+   all.forEach(function(e){cs.set(e,getComputedStyle(e))});
+   var rm=[];
+   all.forEach(function(e){
+     var c=cs.get(e);if(!c)return;
+     var tag=e.tagName.toLowerCase();
+     if(c.display==='none'||c.position==='fixed'||c.position==='sticky'||tag==='script'||tag==='style'||tag==='link'||tag==='button'||tag==='nav'){rm.push(e);return}
+     if(e instanceof SVGElement){
+       if(tag==='svg'){var r=e.getBoundingClientRect();if(!e.getAttribute('viewBox')&&r.width&&r.height)e.setAttribute('viewBox','0 0 '+Math.round(r.width)+' '+Math.round(r.height))}
+       SVGP.forEach(function(p){var v=c.getPropertyValue(p);if(v&&!e.getAttribute(p)&&!(p==='opacity'&&v==='1'))e.setAttribute(p,v)});
+       return;
+     }
+     var pc=e.parentElement?cs.get(e.parentElement)||getComputedStyle(e.parentElement):null,st=[];
+     INH.forEach(function(p){var v=c.getPropertyValue(p);if(v&&(!pc||pc.getPropertyValue(p)!==v))st.push(p+':'+v)});
+     OWN.forEach(function(p){var v=c.getPropertyValue(p);if(!v)return;
+       if(/^border-(top|right|bottom|left)$/.test(p)){if(/\\bnone\\b|^0px/.test(v))return}
+       else if(/radius|padding|margin/.test(p)){if(v==='0px'||v==='auto')return}
+       else if(p==='background-color'){if(v==='rgba(0, 0, 0, 0)'||v==='transparent')return}
+       else if(p==='background-image'||p==='box-shadow'){if(v==='none')return}
+       else if(p==='text-decoration-line'){if(v==='none')return}
+       else if(p==='text-decoration-style'||p==='text-decoration-color'){if(c.getPropertyValue('text-decoration-line')==='none')return}
+       else if(p==='flex-direction'||p==='flex-wrap'||p==='justify-content'||p==='align-items'||p==='gap'){if(!/flex|grid/.test(c.display)||v==='normal'||v==='row'||v==='nowrap')return}
+       else if(p==='vertical-align'){if(v==='baseline')return}
+       else if(p==='border-collapse'){if(v!=='collapse'||tag!=='table')return}
+       st.push(p+':'+v)});
+     if(/^(flex|inline-flex|grid|inline-grid|inline-block)$/.test(c.display))st.push('display:'+c.display);
+     else if(c.display==='block'&&/^(span|b|strong|em|i|a|small|mark|code|label|u|s|sup|sub|abbr|time|cite|q|big)$/.test(tag))st.push('display:block');
+     else if(c.display==='inline'&&/^(div|p|h[1-6]|section|article|li|figure|header|footer)$/.test(tag))st.push('display:inline');
+     if(/^inline-(block|flex|grid)$/.test(c.display)||(/^(flex|grid)$/.test(c.display)&&e.children.length===0)){var rr=e.getBoundingClientRect();if(rr.width&&rr.width<120){st.push('min-width:'+Math.round(rr.width)+'px');if(rr.height<80)st.push('min-height:'+Math.round(rr.height)+'px')}}
+     if(/grid/.test(c.display)){var g=tracks(c.getPropertyValue('grid-template-columns'));if(g)st.push('grid-template-columns:'+g)}
+     if(/grid/.test((pc&&pc.display)||'')){var sp=c.getPropertyValue('grid-column-end');if(/span/.test(sp))st.push('grid-column:'+c.getPropertyValue('grid-column-start')+' / '+sp)}
+     if(tag==='img'||tag==='table')st.push('max-width:100%');
+     if(st.length)e.setAttribute('style',st.join(';'));else e.removeAttribute('style');
+   });
+   rm.forEach(function(e){if(e.parentNode)e.parentNode.removeChild(e)});
+   var b=getComputedStyle(body),wrap='<div data-sheet-root="1" style="color:'+b.color+';font-family:'+b.fontFamily.replace(/"/g,"'")+';font-size:'+b.fontSize+';line-height:'+b.lineHeight+(b.backgroundColor&&b.backgroundColor!=='rgba(0, 0, 0, 0)'?';background-color:'+b.backgroundColor+';padding:12px;border-radius:12px':'')+'">'+body.innerHTML+'</div>';
+   parent.postMessage({sheetCapture:wrap},'*');
+  }catch(err){parent.postMessage({sheetCapture:null,err:String(err)},'*')}
+ }
+ function go(){var f=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([f,new Promise(function(r){setTimeout(r,1500)})]).then(function(){setTimeout(run,350)})}
+ if(document.readyState==='complete')go();else window.addEventListener('load',go);
+})();`;
+const STORAGE_SHIM=`try{window.localStorage.length}catch(e){(function(){var m={},s={getItem:function(k){return k in m?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}};try{Object.defineProperty(window,'localStorage',{value:s,configurable:true});Object.defineProperty(window,'sessionStorage',{value:s,configurable:true})}catch(e2){}})()}`;
+function captureSheet(html,ms=9000){
+  return new Promise(res=>{
+    let src=String(html);
+    const shim='<script>'+STORAGE_SHIM+'<\/script>',cap='<script>'+CAPTURE_JS+'<\/script>';
+    src=/<head[^>]*>/i.test(src)?src.replace(/<head[^>]*>/i,m=>m+shim):shim+src;
+    src=/<\/body>/i.test(src)?src.replace(/<\/body>(?![\s\S]*<\/body>)/i,cap+'</body>'):src+cap;
+    const f=document.createElement('iframe');
+    f.setAttribute('sandbox','allow-scripts');f.setAttribute('aria-hidden','true');f.tabIndex=-1;
+    f.style.cssText='position:fixed;left:-12000px;top:0;width:420px;height:1400px;border:0;opacity:0;pointer-events:none';
+    let tm;
+    const done=v=>{clearTimeout(tm);window.removeEventListener('message',on);f.remove();res(v)};
+    const on=e=>{if(e.source===f.contentWindow&&e.data&&'sheetCapture' in e.data)done(typeof e.data.sheetCapture==='string'?e.data.sheetCapture:null)};
+    window.addEventListener('message',on);tm=setTimeout(()=>done(null),ms);
+    f.srcdoc=src;document.body.appendChild(f);
+  });
+}
+const fontLinksOf=html=>[...new Set((String(html).match(/https:\/\/fonts\.googleapis\.com\/css2?\?[^"'\s>]+/g)||[]).map(u=>u.replace(/&amp;/g,'&')))].slice(0,3);
+function ensureFontLinks(urls){(urls||[]).forEach(u=>{if(!/^https:\/\/fonts\.googleapis\.com\//.test(u)||document.querySelector(`link[data-fl="${CSS.escape(u)}"]`))return;const l=document.createElement('link');l.rel='stylesheet';l.href=u;l.dataset.fl=u;document.head.appendChild(l)})}
+
 function sanitizeRich(html){
   const doc=new DOMParser().parseFromString(html,'text/html');
   const out=document.createElement('div');
+  const idp='s'+Math.random().toString(36).slice(2,6)+'-';
   const walk=(node,parent)=>{
     for(const n of [...node.childNodes]){
       if(n.nodeType===3){parent.appendChild(document.createTextNode(n.data));continue}
       if(n.nodeType!==1)continue;
       let tag=n.tagName.toUpperCase();
+      if(tag==='SVG'){const sv=svgClean(n,(n.getAttribute('id')||'').match(/^s[a-z0-9]{4}-/)?'':idp);if(sv)parent.appendChild(sv);continue}
       if(RICH_DROP.has(tag))continue;
       tag=RICH_TAGMAP[tag]||tag;
       if(tag==='FONT'){
@@ -740,7 +898,7 @@ function sanitizeRich(html){
   };
   walk(doc.body||doc,out);
   $$('p,div,span,strong,em,u,s,mark,a,li,td,th,h1,h2,h3,h4,h5,h6',out).reverse().forEach(e=>{
-    if(e.textContent.trim()||e.querySelector('img,table'))return;
+    if(e.textContent.trim()||e.querySelector('img,table,svg'))return;
     if(!e.querySelector('br')&&!/^(TD|TH)$/.test(e.tagName)&&!e.getAttribute('style'))e.remove();
   });
   $$('table',out).forEach(tb=>{if(!tb.querySelector('tbody')&&!tb.querySelector('thead')){const b=document.createElement('tbody');[...tb.children].forEach(c=>b.appendChild(c));tb.appendChild(b)}});
@@ -1854,8 +2012,9 @@ VIEWS.home=()=>{
     <div class="card tight"><div class="stat" style="font-size:28px">${S.topics.length}</div><div class="small muted">topics</div></div>
   </div>
   ${last?`<h2 class="sec">Continue</h2><a class="trow" href="#/topic/${last.id}/read"><div class="t">${esc(last.title)}</div><div class="m"><div class="bar"><i style="width:${pct(last)}%"></i></div><span class="small muted">${pct(last)}% read · last opened ${fmtDate(last.lastOpened)}</span></div></a>`:''}
+  <a class="card tight row sp carhome" href="#/car" style="margin-top:14px;text-decoration:none;color:inherit"><div><b>Car audio</b><div class="small muted">${CAR.list().length?CAR.list().length+' item'+(CAR.list().length===1?'':'s')+' in your playlist':'Listen to notes and answers while driving'}</div></div>${ic('play',22)}</a>
   <h2 class="sec">Revision due today${dueList.length?' ('+dueList.length+')':''}</h2>
-  ${dueList.length?dueList.slice(0,6).map(t=>`<a class="trow" href="#/topic/${t.id}/read"><div class="t">${esc(t.title)}</div><div class="small muted">${esc(t.subject)} · ${dueLabel(t)}${t.rev.weak?' · marked hard':''}</div></a>`).join(''):`<p class="muted" style="margin-top:0">Nothing is due today.${fresh.length?' Start a first pass below.':''}</p>`}
+  ${dueList.length?dueList.slice(0,6).map(t=>`<a class="trow" href="#/topic/${t.id}/read"><div class="t">${esc(t.title)}</div><div class="small muted">${t.chapterId?'Revision sheet · ':''}${esc(t.subject)} · ${dueLabel(t)}${t.rev.weak?' · marked hard':''}</div></a>`).join(''):`<p class="muted" style="margin-top:0">Nothing is due today.${fresh.length?' Start a first pass below.':''}</p>`}
   ${fresh.length?`<h2 class="sec">Start a first pass</h2>`+fresh.map(t=>`<a class="trow" href="#/topic/${t.id}"><div class="t">${esc(t.title)}</div><div class="small muted">${esc(t.subject)} · not revised yet</div></a>`).join(''):''}
   <h2 class="sec">Coverage by subject</h2>
   <div class="card">${subj.map(x=>`<div style="margin:8px 0"><div class="row sp small"><b>${esc(x.n)}</b><span class="muted">${x.c} topic${x.c>1?'s':''} · ${x.p}%</span></div><div class="bar"><i style="width:${x.p}%"></i></div></div>`).join('')}</div>
@@ -2082,8 +2241,9 @@ VIEWS.topic=r=>{
   const qp=new URLSearchParams(r.q||'');
   let editing=qp.has('edit'),mode='full',tabClean=null;
   const deep=qp.has('c')?{k:'c',i:+qp.get('c'),hl:qp.get('hl')||'',hs:qp.get('hs')||''}:(qp.has('h')?{k:'h',i:+qp.get('h'),hs:qp.get('hs')||''}:null);
+  if(t.chapterId&&!deep&&!editing&&strip(t.qs||'')){mode='qs';if(!r.b)tab='read';ensureFontLinks(t.fonts)}
   t.lastOpened=Date.now();DB.put('topics',t);
-  const flushEdit=()=>{const rb=$('#readBody');if(!rb)return;if(editing&&mode==='full'){t.html=sanitize(rb.innerHTML)||'<p></p>';saveTopicNow(t)}else if(mode==='qs'){t.qs=sanitizeRich(rb.innerHTML);saveTopicNow(t)}};
+  const flushEdit=()=>{const rb=$('#readBody');if(!rb)return;if(editing&&mode==='full'){t.html=sanitize(rb.innerHTML)||'<p></p>';saveTopicNow(t)}else if(mode==='qs'&&rb.isContentEditable){const v=sanitizeRich(rb.innerHTML);if(v!==t.qs){t.qs=v;saveTopicNow(t)}}};
   CLEAN.push(()=>{flushEdit();if(tabClean)tabClean()});
 
   view().innerHTML=`<div class="thead"><a href="#/library" class="small">‹ Library</a><h1>${esc(t.title)}</h1>
@@ -2158,11 +2318,12 @@ VIEWS.topic=r=>{
       <button class="sw" style="background:var(--surface2)" data-cmd="hilitecolor" data-val="transparent" aria-label="Remove background" title="Remove background">×</button>
       </div>`;
     rb0.innerHTML=`<div class="row sp noprint" style="margin-bottom:10px"><div class="seg" id="rmode"><button data-m="full" aria-pressed="${mode==='full'}">Full text</button><button data-m="hl" aria-pressed="${mode==='hl'}">Highlights only</button><button data-m="qs" aria-pressed="${mode==='qs'}">Quick summary</button></div>
-      <div class="row">${mode==='qs'?`<button class="btn sm" id="rListen">${ic('play',18)} Listen</button><button class="btn sm" id="qsCopy">${ic('copy',18)} Copy</button><button class="btn sm ghost" id="qsClear">Clear</button>`:`<button class="btn sm" id="rListen">${ic('play',18)} Listen</button>${editing||mode==='hl'?'':'<button class="btn sm" id="rCol">Collapse all</button><button class="btn sm" id="rExp">Expand all</button><button class="btn sm" id="rAuto">Auto-highlight</button>'}<button class="btn sm ${editing?'pri':''}" id="rEdit">${editing?'Done editing':'Edit'}</button>`}</div></div>
+      <div class="row">${mode==='qs'?`<button class="btn sm" id="rListen">${ic('play',18)} Listen</button><button class="btn sm" id="rCar" title="Add this note to Car audio">Car audio</button><button class="btn sm" id="qsCopy">${ic('copy',18)} Copy</button><button class="btn sm ghost" id="qsClear">Clear</button>`:`<button class="btn sm" id="rListen">${ic('play',18)} Listen</button><button class="btn sm" id="rCar" title="Add this note to Car audio">Car audio</button>${editing||mode==='hl'?'':'<button class="btn sm" id="rCol">Collapse all</button><button class="btn sm" id="rExp">Expand all</button><button class="btn sm" id="rAuto">Auto-highlight</button>'}<button class="btn sm ${editing?'pri':''}" id="rEdit">${editing?'Done editing':'Edit'}</button>`}</div></div>
       ${mode==='qs'?`<p class="small muted" style="margin:0 0 10px">Paste a summary from anywhere — colours, tables and formatting are kept as you pasted them. To listen from a certain point, tap there and press Listen.</p>${qtb}`:''}
       ${editing?etb:''}${mode==='qs'?'':`<div class="legend">${legend}</div>`}<article id="readBody" class="reader ${editing?'editing':''}"></article>
       ${mode==='qs'?'':`<div class="row" style="margin:24px auto;max-width:44em"><button class="btn" id="rDone">Mark as read</button><span class="small muted" id="rProg">${pct(t)}% read</span></div>`}`;
     const rb=$('#readBody');
+    {const rc=$('#rCar');if(rc)rc.onclick=()=>{flushEdit();addToCar(['t:'+t.id])}}
     $('#rmode').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.m===mode)return;if(TTS.root)TTS.stop(true);flushEdit();mode=b.dataset.m;if(mode!=='full')editing=false;renderRead()};
     if(mode==='qs'){
       rb.className='reader qs';
@@ -2412,13 +2573,15 @@ VIEWS.topic=r=>{
     modal(`<h3>Topic details</h3><label class="f" for="dt">Title</label><input type="text" id="dt" value="${esc(t.title)}">
     <label class="f" for="ds">Subject</label><input type="text" id="ds" list="dls" value="${esc(t.subject)}"><label class="f" for="du">Unit</label><input type="text" id="du" list="dlu" value="${esc(t.unit||'')}">${dl('dls',subjects())}${dl('dlu',[...new Set(S.topics.map(x=>x.unit).filter(Boolean))])}
     <label class="f" for="dg">Tags (comma separated)</label><input type="text" id="dg" value="${esc((t.tags||[]).join(', '))}">
+    ${S.syllabus.length?`<label class="f" for="dch">Revision sheet for chapter</label><select id="dch">${chapterOptions(t.chapterId||'')}</select><p class="small muted" style="margin:4px 0 0">Linked notes are listed in Practise › Revision sheets and on that chapter's questions.</p>`:''}
     <div class="row" style="margin-top:14px"><button class="btn pri" id="dok">Save</button><button class="btn" id="dno">Cancel</button></div>
     <h2 class="sec">Export this topic</h2><div class="row"><button class="btn sm" id="xDoc">Word (.docx)</button><button class="btn sm" id="xPdf">PDF</button><button class="btn sm" id="xMd">Markdown</button><button class="btn sm" id="xHt">Web page</button></div>
     <p class="small muted">Word and PDF keep your highlight colours and underline styles.</p>
     <h2 class="sec">Manage</h2><div class="row"><button class="btn sm" id="dDup">Duplicate</button><button class="btn sm dng" id="dDel">Delete topic</button></div>`,b=>{
       $('#dno',b).onclick=closeModal;
       $('#dok',b).onclick=async()=>{const ti=$('#dt',b).value.trim();if(!ti){toast('Title cannot be empty');return}
-        Object.assign(t,{title:ti,subject:$('#ds',b).value.trim()||'General',unit:$('#du',b).value.trim(),tags:parseTags($('#dg',b).value)});await saveTopicNow(t);closeModal();render()};
+        Object.assign(t,{title:ti,subject:$('#ds',b).value.trim()||'General',unit:$('#du',b).value.trim(),tags:parseTags($('#dg',b).value)});
+        if($('#dch',b))t.chapterId=$('#dch',b).value;await saveTopicNow(t);closeModal();render()};
       $('#xDoc',b).onclick=()=>{closeModal();exportTopics([t],t.title,'docx')};
       $('#xPdf',b).onclick=()=>{closeModal();exportTopics([t],t.title,'pdf')};
       $('#xMd',b).onclick=()=>saveFile(safeName(t.title)+'.md','# '+t.title+'\n\n'+html2md(t.html),'text/markdown');
@@ -2470,31 +2633,32 @@ let SQID=0;
 async function doSearch(raw,keep){
   const q=(raw||'').trim(),id=++SQID;SRCH.q=q;
   const res=$('#sres'),stat=$('#sstat'),flt=$('#sflt');if(!res)return;
-  if(!S.topics.length){stat.textContent='';flt.innerHTML='';res.innerHTML='<div class="empty">Add some notes first, then search across them here.</div>';return}
-  if(!NLP.idx){stat.textContent='Getting your notes ready…';await NLP.whenReady();if(id!==SQID||!$('#sres'))return}
+  if(!S.topics.length&&!S.questions.length){stat.textContent='';flt.innerHTML='';res.innerHTML='<div class="empty">Add some notes or questions first, then search across them here.</div>';return}
+  if(S.topics.length&&!NLP.idx){stat.textContent='Getting your notes ready…';await NLP.whenReady();if(id!==SQID||!$('#sres'))return}
   if(!q){stat.textContent='';flt.innerHTML='';searchEmpty();return}
-  const out=NLP.search(q);
-  if(!out||!out.topics.length){
+  const out=(S.topics.length&&NLP.search(q))||{topics:[],examples:[],related:[],stems:[],terms:[],stats:{topics:0,passages:0}};
+  const PR=typeof practiseResultsHtml==='function'?practiseResultsHtml(q):{html:'',n:0};
+  if(!out.topics.length&&!PR.n){
     flt.innerHTML='';stat.textContent='';
-    res.innerHTML=`<div class="empty">Nothing in your notes matches “${esc(q)}”.<br><span class="small">Try fewer or simpler words, or add related words under More → Smart features.</span></div>`;return;
+    res.innerHTML=`<div class="empty">Nothing in your notes or Practise matches “${esc(q)}”.<br><span class="small">Try fewer or simpler words, or add related words under More → Smart features.</span></div>`;return;
   }
   pushRecent(q);
   const subs={};out.topics.forEach(g=>subs[g.t.subject]=(subs[g.t.subject]||0)+1);
   const names=Object.keys(subs).sort((a,b)=>subs[b]-subs[a]);
   flt.innerHTML=names.length>1?`<button class="chip" data-subj="" aria-pressed="${!SRCH.subject}">All subjects</button>`+names.map(n=>`<button class="chip" data-subj="${esc(n)}" aria-pressed="${SRCH.subject===n}">${esc(n)} (${subs[n]})</button>`).join(''):'';
   const shown=out.topics.filter(g=>!SRCH.subject||g.t.subject===SRCH.subject);
-  stat.textContent=`${shown.length} note${shown.length===1?'':'s'} in ${names.length} subject${names.length===1?'':'s'}${out.long?' · treated as a question: key ideas were picked out':''}`;
+  stat.textContent=`${shown.length} note${shown.length===1?'':'s'}${names.length?` in ${names.length} subject${names.length===1?'':'s'}`:''}${PR.n?` · ${PR.n} from Practise`:''}${out.long?' · treated as a question: key ideas were picked out':''}`;
   const hs=hsParam(out.stems);
   const chips=out.related.length?`<div class="small muted">Also looking at related ideas:</div><div class="rel">${out.related.map(w=>`<button class="chip" data-q="${esc(w)}">${esc(w)}</button>`).join('')}</div>`:'';
   const groups={};shown.forEach(g=>(groups[g.t.subject]=groups[g.t.subject]||[]).push(g));
   const card=g=>{
     const p0=g.passages[0];
-    return `<div class="res"><div class="row sp"><h3><a href="#/topic/${g.t.id}/read?c=${p0.ci}&hs=${hs}">${esc(g.t.title)}</a></h3><span class="tag">${esc(g.t.subject)}${g.t.unit?' › '+esc(g.t.unit):''}</span></div>`+
+    return `<div class="res"><div class="row sp"><h3><a href="#/topic/${g.t.id}/read?c=${p0.ci}&hs=${hs}">${esc(g.t.title)}</a>${g.t.chapterId?' <span class="qb ok">Revision sheet</span>':''}</h3><span class="tag">${esc(g.t.subject)}${g.t.unit?' › '+esc(g.t.unit):''}</span></div>`+
       g.passages.slice(0,3).map(p=>`<a class="pas" href="#/topic/${g.t.id}/read?c=${p.ci}&hs=${hs}"><div class="p">${p.path.length?esc(p.path.join(' › ')):'Opening section'}${p.via?' · related idea':''}${p.matched.length?' · matches '+esc(p.matched.slice(0,3).join(', ')):''}</div><div>${p.snip}</div></a>`).join('')+
       (g.passages.length>3?`<div class="small muted">+ ${g.passages.length-3} more passage${g.passages.length-3>1?'s':''} in this note</div>`:'')+`</div>`;
   };
   const ex=out.examples.length?`<div class="subjhead">Examples in your bank</div><div class="grid">${out.examples.map(e=>exCard(e)).join('')}</div>`:'';
-  res.innerHTML=chips+Object.keys(groups).map(sj=>`<div class="subjhead">${esc(sj)}</div>`+groups[sj].map(card).join('')).join('')+ex;
+  res.innerHTML=chips+Object.keys(groups).map(sj=>`<div class="subjhead">${esc(sj)}</div>`+groups[sj].map(card).join('')).join('')+(SRCH.subject?'':PR.html)+ex;
 }
 </script>
 <script>
@@ -3091,7 +3255,7 @@ const TTS={
   textMap(el){
     const nodes=[];let text='';
     const own='li,p,h1,h2,h3,h4,h5,h6,td,th,div,blockquote,pre,figcaption';
-    const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,{acceptNode:n=>(n.parentElement.closest('.tg')||n.parentElement.closest(own)!==el)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+    const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,{acceptNode:n=>(n.parentElement.closest('.tg')||n.parentElement.closest('svg')||n.parentElement.closest(own)!==el)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
     let n;while((n=w.nextNode())){nodes.push({n,start:text.length});text+=n.data}
     return{nodes,text};
   },
@@ -3138,6 +3302,7 @@ const TTS={
   },
   open(root,topic,opts){
     opts=opts||{};
+    if(typeof CARP!=='undefined'&&CARP.el&&!CARP.el.paused)CARP.el.pause();
     if(!this.supported){toast('Read-aloud is not available in this browser.',4000);return}
     this.stop(true);this.root=root;this.topic=topic;this.noSummary=!!opts.noSummary;this.title=opts.title||(topic?topic.title:'');this.loadVoices();this.collect();
     if(!this.blocks.length){toast('There is nothing to read yet.');return}
@@ -3465,6 +3630,7 @@ function questionModal(q,cb,draft){
 }
 
 /* ----- list view ----- */
+let PRACTISE_LINKED=false;
 let QF={tab:'bank',paper:'',src:'',flt:new Set(),q:'',open:new Set(),grp:''};
 function qMatches(q,A){
   if(QF.paper&&(QF.paper==='other'?paperById(q.paper):q.paper!==QF.paper))return false;
@@ -3489,21 +3655,23 @@ function qRow(q,A,R){
   return `<a class="qrow" href="#/practise/${encodeURIComponent(q.id)}"><div class="qt">${esc(q.text)}</div><div class="qm">${src}${q.directive?`<span class="qb dir">${esc(q.directive)}</span>`:''}${rc>1?`<span class="qb rep">theme asked ${rc}×</span>`:''}${st}${a.mine||a.scored?'<span class="qb att">attempted</span>':''}${also}</div></a>`;
 }
 VIEWS.practise=r=>{
-  if(r.a){const q=byId(S.questions,decodeURIComponent(r.a));if(q)return qDetail(q);}
+  if(r.a){const q=byId(S.questions,decodeURIComponent(r.a));if(q)return qDetail(q,new URLSearchParams(r.q||''));}
   const qp=new URLSearchParams(r.q||'');
   if(qp.get('tab'))QF.tab=qp.get('tab');
+  if(!PRACTISE_LINKED){PRACTISE_LINKED=true;linkSheetsToChapters().then(n=>{if(n&&QF.tab==='sheets'&&location.hash.startsWith('#/practise'))drawSheets()})}
   if(qp.get('ch')){const c=syl().ch.get(qp.get('ch'));if(c){QF.paper=c.paper;QF.open.add(c.id);QF.src='';QF.flt.clear();QF.q='';QF.grp='';QF.tab='bank';QF.jump=c.id}}
   if(qp.get('grp')){QF.grp=qp.get('grp');QF.tab='bank';QF.paper='';QF.q=''}
   const A=ansIndex();
   const nAi=S.questions.filter(q=>(A.get(q.id)||{}).ai).length;
   const nMine=S.answers.filter(a=>a.kind==='mine').length+S.plans.reduce((n,p)=>n+((p.scores||[]).length),0);
   const legacy=S.questions.filter(q=>q.paper&&LEGACY_PAPER[q.paper]);
+  const nSheets=S.topics.filter(t=>t.chapterId).length;
   view().innerHTML=`<div class="row sp"><h1 class="pg">Practise</h1><div class="row"><button class="btn" id="qImp">${ic('up',18)} Import</button><button class="btn pri" id="qNew">${ic('plus')} Question</button></div></div>
   ${legacy.length&&!S.settings.legacyDone?`<div class="card" style="border-color:var(--brand);margin-bottom:12px"><b>Update paper names to the official numbering?</b>
     <p class="small" style="margin:6px 0">${Object.keys(LEGACY_PAPER).map(k=>{const n=legacy.filter(q=>q.paper===k).length;return n?`${esc(k)} → ${paperById(LEGACY_PAPER[k]).n} (${n} question${n>1?'s':''})`:''}).filter(Boolean).join('<br>')}</p>
     <p class="small muted" style="margin:0 0 8px">Paper I is now the Essay, Paper II History and Geography, up to Paper V Science and Technology.</p>
     <div class="row"><button class="btn sm pri" id="lgOk">Apply</button><button class="btn sm" id="lgNo">Leave as they are</button></div></div>`:''}
-  <div class="seg" role="tablist" id="qtabs" style="margin-bottom:10px"><button data-t="bank" aria-pressed="${QF.tab==='bank'}">Question bank</button><button data-t="model" aria-pressed="${QF.tab==='model'}">Model answers${nAi?' '+nAi:''}</button><button data-t="mine" aria-pressed="${QF.tab==='mine'}">My attempts${nMine?' '+nMine:''}</button></div>
+  <div class="seg qtabs" role="tablist" id="qtabs" style="margin-bottom:10px"><button data-t="bank" aria-pressed="${QF.tab==='bank'}">Question bank</button><button data-t="model" aria-pressed="${QF.tab==='model'}">Model answers${nAi?' '+nAi:''}</button><button data-t="mine" aria-pressed="${QF.tab==='mine'}">My attempts${nMine?' '+nMine:''}</button><button data-t="sheets" aria-pressed="${QF.tab==='sheets'}">Revision sheets${nSheets?' '+nSheets:''}</button></div>
   <div id="qbody"></div>`;
   $('#qNew').onclick=()=>questionModal(null,q=>{location.hash='#/practise/'+encodeURIComponent(q.id)});
   $('#qImp').onclick=importMenu;
@@ -3511,6 +3679,7 @@ VIEWS.practise=r=>{
   const lo=$('#lgOk');if(lo)lo.onclick=async()=>{const now=Date.now(),ch=[];legacy.forEach(q=>{q.paper=LEGACY_PAPER[q.paper];if(q.paper==='P1')q.type='essay';q.updated=now;ch.push(q)});await DB.putMany('questions',ch);S.settings.legacyDone=true;saveSettings();toast('Paper names updated');VIEWS.practise({})};
   const ln=$('#lgNo');if(ln)ln.onclick=()=>{S.settings.legacyDone=true;saveSettings();VIEWS.practise({})};
   if(QF.tab==='mine')return drawAttempts();
+  if(QF.tab==='sheets')return drawSheets();
   drawBank(A);
 };
 function drawBank(A){
@@ -3668,6 +3837,7 @@ function answerCard(a,q){
       <button class="btn sm" data-act="hl" aria-pressed="${S.settings.ansHL!==false}">Highlights ${S.settings.ansHL!==false?'on':'off'}</button>
       <button class="btn sm" data-act="edit">Edit</button>
       <button class="btn sm" data-act="copy">${ic('copy',16)} Copy</button>
+      <button class="btn sm" data-act="car" title="Add to Car audio">Car audio</button>
       ${a.kind==='ai'?`<button class="btn sm" data-act="ver">${a.verified?'Mark as not verified':'Mark verified'}</button>`:''}
       <button class="btn sm ghost" data-act="del" aria-label="Delete this answer">${ic('trash',16)}</button>
     </div>
@@ -3723,7 +3893,7 @@ function pasteAnswerModal(q,done){
 }
 
 /* ----- question detail ----- */
-function qDetail(q){
+function qDetail(q,qp){
   const p=planFor(q);
   const savePlan=debounce(()=>{p.updated=Date.now();DB.put('plans',p)},500);
   let left=Math.round((p.minutes||12)*60),tmr=null;
@@ -3739,7 +3909,9 @@ function qDetail(q){
   ${q.basis?`<p class="small" style="margin:6px 0"><b>Why it is likely:</b> ${esc(q.basis)}</p>`:''}
   ${(q.alsoRelevant||[]).length?`<div class="small" style="margin:6px 0">Also relevant to: ${(q.alsoRelevant||[]).map(id=>{const c=syl().ch.get(id);return c?`<a class="qb also" href="#/practise?ch=${encodeURIComponent(id)}">${esc(paperById(c.paper).n)} · ${esc(chapterName(id))}</a>`:''}).join(' ')}</div>`:''}
   <div class="row" style="margin:10px 0"><button class="btn sm" id="qEd">Edit question</button><button class="btn sm dng" id="qDel">Delete</button></div>
-  ${linked.length?`<div class="small" style="margin-bottom:10px">Notes to revise: ${linked.map(t=>`<a href="#/topic/${t.id}/read">${esc(t.title)}</a>`).join(', ')}</div>`:''}
+  ${(()=>{const sh=q.chapter?sheetsFor(q.chapter):[];const other=linked.filter(t=>!sh.includes(t));
+    return (sh.length?`<div class="row" style="margin-bottom:8px">${sh.map(t=>`<button class="btn sm" data-panel="${t.id}" data-sheet="1"><span class="bd e" aria-hidden="true">S</span> Revision sheet${sh.length>1?': '+esc(t.title):''}</button>`).join('')}</div>`:'')+
+      (other.length?`<div class="small" style="margin-bottom:10px">Notes to revise: ${other.map(t=>`<a href="#/topic/${t.id}/read" data-panel="${t.id}">${esc(t.title)}</a>`).join(', ')}</div>`:'')})()}
   <div id="qsug"></div>
   <h2 class="sec">Model answer${ai.length>1?'s':''}</h2>
   <div id="aiList">${ai.length?'':`<div class="card tight small muted" style="margin-bottom:8px">No model answer yet. Copy the prompt into Claude, then paste its answer back here.</div>`}</div>
@@ -3794,6 +3966,12 @@ function qDetail(q){
     if(save)saveAnswer(a).then(()=>{toast('Answer saved');mountAnswers()});else mountAnswers();
   }
   mountAnswers();
+  const onPanel=e=>{
+    const a=e.target.closest('[data-panel]');if(!a)return;e.preventDefault();
+    NOTEPANEL.open(a.dataset.panel,a.dataset.sheet?{sheet:true}:(a.dataset.ci!=null?{k:'c',i:+a.dataset.ci,hs:decodeURIComponent(a.dataset.hs||'').replace(/\+/g,' ')}:null));
+  };
+  const vw=$('#view');vw.addEventListener('click',onPanel);CLEAN.push(()=>vw.removeEventListener('click',onPanel));
+  if(qp&&qp.get('a')){const aid=qp.get('a'),hs=(qp.get('hs')||'').replace(/\+/g,' ');setTimeout(()=>{const c=$(`.anscard[data-aid="${CSS.escape(aid)}"]`);if(!c)return;c.scrollIntoView({block:'start'});try{flashTerms($('.ansbody',c),{hs})}catch(e){}},80)}
   const onAnsClick=async e=>{
     const card=e.target.closest('.anscard');if(!card)return;
     const a=byId(S.answers,card.dataset.aid);if(!a)return;
@@ -3807,6 +3985,7 @@ function qDetail(q){
     else if(act==='save')endEdit(card,a,true);
     else if(act==='cancel')endEdit(card,a,false);
     else if(act==='copy')copyRich(body,a.kind==='ai'?'Model answer':'Your answer');
+    else if(act==='car'){if(!a.updated){toast('Save the answer first');return}addToCar(['a:'+a.id])}
     else if(act==='ver'){a.verified=!a.verified;await saveAnswer(a);mountAnswers();toast(a.verified?'Marked as verified':'Marked as an AI draft again')}
     else if(act==='del'){if(!await confirmBox('Delete this answer?'))return;a.deleted=true;a.updated=Date.now();await DB.put('answers',a);S.answers=S.answers.filter(x=>x.id!==a.id);mountAnswers()}
   };
@@ -3844,7 +4023,7 @@ function qDetail(q){
     qRes=NLP.search(q.text);const el=$('#qsug');if(!el||!qRes||!qRes.topics.length)return;
     const known=new Set(linked.map(t=>t.id)),hs=hsParam(qRes.stems),pick=qRes.topics.filter(g=>!known.has(g.t.id)).slice(0,5);
     if(!pick.length)return;
-    el.innerHTML=`<details class="ess"><summary>Notes that may help with this question <span class="cnt">${pick.length}</span></summary><div class="body">${pick.map(g=>`<div style="margin:6px 0"><a href="#/topic/${g.t.id}/read?c=${g.passages[0].ci}&hs=${hs}"><b>${esc(g.t.title)}</b></a> <span class="tag">${esc(g.t.subject)}</span><div class="small muted">${g.passages[0].snip}</div></div>`).join('')}</div></details>`;
+    el.innerHTML=`<details class="ess"><summary>Notes that may help with this question <span class="cnt">${pick.length}</span></summary><div class="body"><p class="small muted" style="margin:0 0 4px">Tap one to read it here; close it to come back.</p>${pick.map(g=>`<div style="margin:6px 0"><a href="#/topic/${g.t.id}/read?c=${g.passages[0].ci}&hs=${hs}" data-panel="${g.t.id}" data-ci="${g.passages[0].ci}" data-hs="${hs}"><b>${esc(g.t.title)}</b></a> <span class="tag">${esc(g.t.subject)}</span><div class="small muted">${g.passages[0].snip}</div></div>`).join('')}</div></details>`;
   });
   drawSkel();
   const sk=$('#skel');
@@ -3893,8 +4072,8 @@ function planText(q,p){
 function importMenu(){
   modal(`<h3>Import</h3>
     <div class="card tight" style="margin-bottom:10px"><b>Question bank</b><p class="small muted" style="margin:4px 0 8px">Your question-bank.json: the syllabus tree, previous-year questions and probable questions. Importing again later adds new questions and updates changed ones, without duplicates. Your own questions, answers and attempts are never touched.</p><button class="btn sm pri" id="imB">Choose question-bank.json</button></div>
-    <div class="card tight"><b>Model answers from revision pages</b><p class="small muted" style="margin:4px 0 8px">Pick one or more revision sheets (.html). Each question and answer is matched to your question bank; you check any the app is unsure about.</p>
-    <label class="row small" style="gap:8px;margin-bottom:8px;align-items:flex-start"><input type="checkbox" id="imNotes" checked style="margin-top:3px"><span>Also save each page's notes (everything except the questions and answers) to the Library</span></label>
+    <div class="card tight"><b>Revision pages</b><p class="small muted" style="margin:4px 0 8px">Pick one or more revision pages (.html). Their questions and model answers are matched to your question bank, and you check any the app is unsure about.</p>
+    <label class="row small" style="gap:8px;margin-bottom:8px;align-items:flex-start"><input type="checkbox" id="imNotes" checked style="margin-top:3px"><span>Also save the rest of each page as a <b>revision sheet</b> in the Library, linked to its chapter and keeping its colours, tables and diagrams</span></label>
     <button class="btn sm pri" id="imA">Choose revision pages</button></div>
     <div class="row" style="margin-top:12px"><button class="btn" id="imX">Close</button></div>`,b=>{
       $('#imX',b).onclick=closeModal;
@@ -3960,6 +4139,7 @@ function qWeights(pool){
   const N=pool.length||1,W=new Map();df.forEach((d,w)=>W.set(w,Math.log(1+N/d)));W.max=Math.log(1+N);return W;
 }
 function parseRevisionPage(html,fname){
+  const raw=html;
   const doc=new DOMParser().parseFromString(html,'text/html');
   doc.querySelectorAll('script,style,noscript,template').forEach(n=>n.remove());
   /* short label paragraphs used as sub-headings ("Introduction", "Way forward") become real headings */
@@ -4000,13 +4180,24 @@ function parseRevisionPage(html,fname){
   const body=doc.body.cloneNode(true);
   if(qaSection){const id=qaSection.id;const tgt=id?body.querySelector('#'+CSS.escape(id)):null;if(tgt)tgt.remove();else body.querySelectorAll('.qa').forEach(n=>n.remove())}
   body.querySelectorAll('nav,button,.noexp,.sec-tools,.tools,[role="toolbar"],#ov,.toast,footer,input,select,textarea,dialog').forEach(n=>n.remove());
-  return{title,items:valid,notesHtml:body.innerHTML};
+  return{title,items:valid,notesHtml:body.innerHTML,raw,qaId:qaSection&&qaSection.id||'',fonts:fontLinksOf(raw)};
+}
+/* remove the questions-and-answers part (and leftover tools) from a captured page */
+function stripQA(html,qaId){
+  const d=new DOMParser().parseFromString(html,'text/html');
+  const tgt=qaId?d.getElementById(qaId):null;
+  if(tgt)tgt.remove();else{d.querySelectorAll('.qa').forEach(n=>n.remove());[...d.querySelectorAll('h1,h2,h3')].filter(h=>/model answers?|questions?\s+(?:and|with)\s+(?:model\s+)?answers?/i.test(h.textContent)).forEach(h=>{const sec=h.closest('section');(sec||h).remove()})}
+  d.querySelectorAll('nav,button,.noexp,.sec-tools,.tools,[role="toolbar"],#ov,.toast,input,select,textarea,dialog,script,style,link').forEach(n=>n.remove());
+  return d.body.innerHTML;
 }
 async function importAnswers(files,saveNotes){
   const pages=[];
   for(const f of files){try{pages.push(Object.assign(parseRevisionPage(await f.text(),f.name.replace(/\.html?$/i,'')),{file:f.name}))}catch(e){toast('Could not read '+f.name,4000)}}
+  return importAnswersPages(pages,saveNotes);
+}
+async function importAnswersPages(pages,saveNotes){
   const items=[];pages.forEach(pg=>pg.items.forEach((it,i)=>items.push(Object.assign(it,{page:pg,idx:i}))));
-  if(!items.length){toast('No questions and answers were found in those pages.',4500);return}
+  if(!items.length&&!(saveNotes&&pages.length)){toast('No questions and answers were found in those pages.',4500);return}
   const pool=S.questions.map(q=>({q,t:qTok(q.text),n:normQ(q.text)})),W=qWeights(pool);
   const score=(it,chap)=>{const t=qTok(it.qtext),n=normQ(it.qtext);
     return pool.map(p=>({q:p.q,s:Math.min(1,qSim(t,p.t,n,p.n,W)+(chap&&p.q.chapter===chap?0.08:0))})).sort((a,b)=>b.s-a.s).slice(0,4)};
@@ -4027,6 +4218,9 @@ async function importAnswers(files,saveNotes){
   /* guess each page's chapter from its confident matches, for new questions */
   pages.forEach(pg=>{const cnt=new Map();items.filter(it=>it.page===pg&&it.auto).forEach(it=>{const q=byId(S.questions,it.choice);if(q&&q.chapter)cnt.set(q.chapter,(cnt.get(q.chapter)||0)+1)});
     pg.chapter=[...cnt.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0])[0]||'';
+    const old=S.topics.find(x=>x.title===pg.title);pg.existing=old||null;
+    if(!pg.chapter&&old&&old.chapterId)pg.chapter=old.chapterId;
+    if(pg.forceChapter)pg.chapter=pg.forceChapter;
     const c=syl().ch.get(pg.chapter);pg.paper=c?c.paper:''});
   items.forEach(it=>{const top=it.cands[0]&&byId(S.questions,it.cands[0].q.id);it.nch=it.page.chapter||(top&&top.chapter)||'';it.nst=(top&&top.chapter===it.nch&&top.subtopic)||'';});
   answerReview(items,pages,saveNotes);
@@ -4042,12 +4236,16 @@ function answerReview(items,pages,saveNotes){
     <label class="row small" style="gap:8px;margin:4px 0"><input type="radio" name="r${i}" value="new" ${it.choice==='new'?'checked':''}><span>Add as a new question</span></label>
     <div class="newq" ${it.choice==='new'?'':'hidden'} style="margin:4px 0 4px 26px">${Y.ch.size?chSel(it)+stSel(it):'<span class="small muted">Import your question bank first to place new questions by chapter.</span>'}</div>
     <label class="row small" style="gap:8px;margin:4px 0"><input type="radio" name="r${i}" value="skip" ${it.choice==='skip'?'checked':''}><span>Skip this one</span></label></div>`;
-  modal(`<h3>Check the matches</h3>
-    <p class="small">${items.length} answer${items.length===1?'':'s'} found in ${pages.length} page${pages.length===1?'':'s'}. <b>${auto.length}</b> matched your question bank with confidence${rev.length?`; please check the other <b>${rev.length}</b>.`:'.'}</p>
+  const chOptions=sel=>`<option value="">Chapter not set</option>`+[...Y.ch.values()].map(c=>`<option value="${c.id}" ${sel===c.id?'selected':''}>${esc(paperById(c.paper).n)} · ${esc(chapterName(c.id))}</option>`).join('');
+  const sheets=saveNotes?`<h4 style="margin:14px 0 6px">Revision sheets</h4><p class="small muted" style="margin:0 0 6px">Each page is saved in the Library and shown under its chapter in Practise › Revision sheets.</p>${pages.map((pg,i)=>`<div class="card tight" style="margin-bottom:8px"><div class="small"><b>${esc(pg.title)}</b>${pg.existing?' · <span class="muted">already in your Library: its sheet view will be refreshed</span>':''}</div><select data-pg="${i}" style="margin-top:6px" aria-label="Chapter for ${esc(pg.title)}">${chOptions(pg.chapter)}</select></div>`).join('')}`:'';
+  modal(`<h3>${items.length?'Check the matches':'Revision sheets'}</h3>
+    ${items.length?'':'<p class="small">No questions and answers were found in these pages, so only the revision sheets will be saved.</p>'}
+    <p class="small" ${items.length?'':'hidden'}>${items.length} answer${items.length===1?'':'s'} found in ${pages.length} page${pages.length===1?'':'s'}. <b>${auto.length}</b> matched your question bank with confidence${rev.length?`; please check the other <b>${rev.length}</b>.`:'.'}</p>
     ${auto.length?`<details class="ess"><summary>Matched automatically <span class="cnt">${auto.length}</span></summary><div class="body small">${auto.map(it=>{const q=byId(S.questions,it.choice);return `<div style="margin:6px 0">${esc(it.qtext)}<br><span class="muted">→ ${esc(chapterName(q.chapter)||paperLabel(q))}${it.exists?' · already imported':''}</span></div>`}).join('')}</div></details>`:''}
     <div id="revList" style="max-height:52vh;overflow:auto;margin-top:8px">${rev.map(it=>row(it,items.indexOf(it))).join('')}</div>
-    <p class="small muted">Answers are saved as <b>AI draft – verify</b> until you mark them verified.</p>
-    <div class="row" style="margin-top:12px"><button class="btn pri" id="arOk">Import answers</button><button class="btn" id="arNo">Cancel</button></div>`,b=>{
+    ${items.length?'<p class="small muted">Answers are saved as <b>AI draft – verify</b> until you mark them verified.</p>':''}
+    ${sheets}
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="arOk">Import</button><button class="btn" id="arNo">Cancel</button></div>`,b=>{
       $('#arNo',b).onclick=closeModal;
       const list=$('#revList',b);
       list.addEventListener('change',e=>{
@@ -4056,23 +4254,31 @@ function answerReview(items,pages,saveNotes){
         if(e.target.dataset.k==='nch'){it.nch=e.target.value;it.nst='';const ss=$('[data-k="nst"]',box);ss.outerHTML=stSel(it)}
         if(e.target.dataset.k==='nst')it.nst=e.target.value;
       });
-      $('#arOk',b).onclick=async()=>{$('#arOk',b).disabled=true;await applyAnswerImport(items,pages,saveNotes);};
+      b.addEventListener('change',e=>{const sp=e.target.closest('[data-pg]');if(sp){const pg=pages[+sp.dataset.pg];pg.chapter=sp.value;const c=syl().ch.get(pg.chapter);pg.paper=c?c.paper:''}});
+      $('#arOk',b).onclick=async()=>{const bt=$('#arOk',b);bt.disabled=true;bt.textContent=saveNotes?'Preparing sheets…':'Importing…';await applyAnswerImport(items,pages,saveNotes);};
     });
 }
 async function applyAnswerImport(items,pages,saveNotes){
   await snapshot();
   const now=Date.now(),newQs=[],touchedQs=new Map(),ans=[];let added=0,updated=0,skipped=0,keptMine=0;
-  /* notes first, so questions can link to them */
-  const noteFor=new Map();
+  /* revision sheets first, so questions can link to them */
+  const noteFor=new Map();let sheetsNew=0,sheetsUpd=0;
   if(saveNotes){
     for(const pg of pages){
-      if(!strip(pg.notesHtml)||!pg.items.length)continue;
-      let t=S.topics.find(x=>x.title===pg.title);
+      if(!strip(pg.notesHtml))continue;
+      let cap=null;try{cap=await captureSheet(pg.raw)}catch(e){}
+      const rich=sanitizeRich(cap?stripQA(cap,pg.qaId):pg.notesHtml);
+      const p=paperById(pg.paper),ch=syl().ch.get(pg.chapter);
+      let t=pg.existing&&byId(S.topics,pg.existing.id);
       if(!t){
-        const p=paperById(pg.paper);
-        t={id:uid(),title:pg.title,subject:p?p.n+' – '+p.t:'Revision sheets',unit:pg.chapter?chapterName(pg.chapter):'',tags:['revision sheet'],html:sanitize(pg.notesHtml)||'<p></p>',qs:sanitizeRich(pg.notesHtml),summary:'',created:now,updated:now,lastOpened:0,progress:0,exampleIds:[],source:pg.file};
-        S.topics.push(t);await DB.put('topics',t);
+        t={id:uid(),title:pg.title,subject:p?p.n+' – '+p.t:'Revision sheets',unit:ch?chapterName(ch.id):'',tags:['revision sheet'],html:sanitize(pg.notesHtml)||'<p></p>',qs:rich,summary:'',created:now,updated:now,lastOpened:0,progress:0,exampleIds:[],source:pg.file,chapterId:ch?ch.id:'',fonts:pg.fonts};
+        S.topics.push(t);sheetsNew++;
+      }else{
+        t.qs=rich;t.fonts=pg.fonts;if(ch){t.chapterId=ch.id;if(!t.unit)t.unit=chapterName(ch.id);if(p&&(!t.subject||t.subject==='Revision sheets'))t.subject=p.n+' – '+p.t}
+        if(!(t.tags||[]).includes('revision sheet'))t.tags=[...(t.tags||[]),'revision sheet'];
+        sheetsUpd++;
       }
+      await saveTopicNow(t);
       noteFor.set(pg,t);
     }
   }
@@ -4097,9 +4303,573 @@ async function applyAnswerImport(items,pages,saveNotes){
   }
   await DB.putMany('answers',ans);
   await DB.putMany('questions',[...newQs,...[...touchedQs.values()].filter(q=>!newQs.includes(q))]);
+  await linkSheetsToChapters();
   closeModal();
-  toast(`${added} answer${added===1?'':'s'} added${updated?`, ${updated} updated`:''}${newQs.length?`, ${newQs.length} new question${newQs.length===1?'':'s'}`:''}${noteFor.size?`, ${noteFor.size} note${noteFor.size===1?'':'s'} in the Library`:''}${keptMine?`. ${keptMine} you had edited were kept`:''}.`,6000);
-  QF.tab='model';if(location.hash.startsWith('#/practise'))VIEWS.practise({});else location.hash='#/practise';
+  toast(`${added} answer${added===1?'':'s'} added${updated?`, ${updated} updated`:''}${newQs.length?`, ${newQs.length} new question${newQs.length===1?'':'s'}`:''}${sheetsNew?`, ${sheetsNew} revision sheet${sheetsNew===1?'':'s'} added`:''}${sheetsUpd?`, ${sheetsUpd} sheet${sheetsUpd===1?'':'s'} refreshed`:''}${keptMine?`. ${keptMine} you had edited were kept`:''}.`,6000);
+  QF.tab=items.length?'model':'sheets';if(location.hash.startsWith('#/practise'))VIEWS.practise({});else location.hash='#/practise';
+}
+
+/* ----- revision sheets: Library notes linked to a syllabus chapter ----- */
+const sheetsFor=chId=>S.topics.filter(t=>t.chapterId===chId).sort((a,b)=>(a.sheetOrder||0)-(b.sheetOrder||0)||(a.created||0)-(b.created||0));
+/* older imported sheets (tagged "revision sheet", no chapter yet) take the chapter most of their questions belong to */
+async function linkSheetsToChapters(){
+  if(!S.syllabus.length)return 0;
+  const ch=[];
+  S.topics.filter(t=>!t.chapterId&&(t.tags||[]).includes('revision sheet')).forEach(t=>{
+    const cnt=new Map();S.questions.forEach(q=>{if((q.topicIds||[]).includes(t.id)&&q.chapter)cnt.set(q.chapter,(cnt.get(q.chapter)||0)+1)});
+    const top=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0];
+    if(top&&syl().ch.has(top[0])){t.chapterId=top[0];t.updated=Date.now();ch.push(t)}
+  });
+  if(ch.length)await DB.putMany('topics',ch);
+  return ch.length;
+}
+let SF={paper:'',missing:false};
+function drawSheets(){
+  const Y=syl(),body=$('#qbody'),A=ansIndex();
+  if(!Y.ch.size){body.innerHTML='<div class="empty">Import your question bank first (Import › question-bank.json). Revision sheets are arranged by its chapters.</div>';return}
+  const chs=[...Y.ch.values()].sort((a,b)=>Y.order.get(a.id)-Y.order.get(b.id));
+  const have=chs.filter(c=>sheetsFor(c.id).length).length;
+  const unlinked=S.topics.filter(t=>!t.chapterId&&(t.tags||[]).includes('revision sheet'));
+  body.innerHTML=`<p class="small muted" style="margin:0 0 6px">Revision sheets live in your Library and are listed here by chapter. They also come up for spaced revision on Home.</p>
+   <div class="card tight row sp" style="margin-bottom:8px"><div><b>${have}</b> of ${chs.length} chapters have a sheet</div><div class="bar" style="flex:1;max-width:160px;margin-left:12px" aria-hidden="true"><i style="width:${Math.round(100*have/chs.length)}%"></i></div></div>
+   ${unlinked.length?`<div class="card tight" style="margin-bottom:8px;border-color:var(--brand)"><b>${unlinked.length} sheet${unlinked.length>1?'s are':' is'} not linked to a chapter</b><div class="small" style="margin-top:4px">${unlinked.map(t=>`<a href="#/topic/${t.id}/read">${esc(t.title)}</a> <button class="btn sm" data-link="${t.id}">Choose chapter</button>`).join('<br>')}</div></div>`:''}
+   <div class="hscroll" id="sfp">${[['','All papers'],...PAPERS.map(p=>[p.id,p.n])].map(([v,l])=>`<button class="chip" data-p="${v}" aria-pressed="${SF.paper===v}">${l}</button>`).join('')}<button class="chip" data-miss="1" aria-pressed="${SF.missing}">Missing a sheet</button></div>
+   <div id="sflist"></div>`;
+  const draw=()=>{
+    let h='';
+    PAPERS.forEach(p=>{
+      if(SF.paper&&SF.paper!==p.id)return;
+      const rows=chs.filter(c=>c.paper===p.id&&(!SF.missing||!sheetsFor(c.id).length));if(!rows.length)return;
+      h+=`<h2 class="sec pphd">${esc(p.n+' – '+p.t)}</h2>`;
+      rows.forEach(c=>{
+        const sh=sheetsFor(c.id),qs=S.questions.filter(q=>q.chapter===c.id),an=qs.filter(q=>(A.get(q.id)||{}).ai).length,ver=qs.filter(q=>(A.get(q.id)||{}).ver).length;
+        h+=`<div class="shrow"><div class="row sp" style="align-items:flex-start"><div class="grow"><b>${esc(chapterName(c.id))}</b><div class="small muted"><a href="#/practise?ch=${encodeURIComponent(c.id)}">${qs.length} question${qs.length===1?'':'s'}</a> · ${an} with model answer${ver?` · ${ver} verified`:''}</div></div>
+          <button class="btn sm${sh.length?' ghost':''}" data-add="${c.id}">${sh.length?ic('plus',16):'Add sheet'}</button></div>
+          ${sh.map(t=>`<button class="shlink" data-open="${t.id}"><span class="bd e" aria-hidden="true">S</span><span class="grow">${esc(t.title)}</span><span class="small muted">${t.rev?esc(dueLabel(t)):'not revised yet'}</span></button>`).join('')}</div>`;
+      });
+    });
+    $('#sflist').innerHTML=h||'<div class="empty">Every chapter here has a sheet.</div>';
+  };
+  draw();
+  $('#sfp').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;if(c.dataset.miss)SF.missing=!SF.missing;else SF.paper=c.dataset.p;drawSheets()};
+  body.onclick=async e=>{
+    const o=e.target.closest('[data-open]');if(o){NOTEPANEL.open(o.dataset.open,{sheet:true});return}
+    const a=e.target.closest('[data-add]');if(a){addSheetModal(a.dataset.add);return}
+    const l=e.target.closest('[data-link]');if(l){const t=byId(S.topics,l.dataset.link);const id=await pickChapter('Which chapter is “'+t.title+'” for?',t.chapterId);if(id==null)return;t.chapterId=id;await saveTopicNow(t);drawSheets()}
+  };
+}
+function chapterOptions(sel){return `<option value="">Not linked to a chapter</option>`+PAPERS.map(p=>{const cs=[...syl().ch.values()].filter(c=>c.paper===p.id);return cs.length?`<optgroup label="${esc(p.n+' – '+p.t)}">${cs.map(c=>`<option value="${c.id}" ${sel===c.id?'selected':''}>${esc(chapterName(c.id))}</option>`).join('')}</optgroup>`:''}).join('')}
+function pickChapter(title,sel){
+  return new Promise(res=>modal(`<h3>${esc(title)}</h3><select id="pcs">${chapterOptions(sel||'')}</select><div class="row" style="margin-top:12px"><button class="btn pri" id="pco">Save</button><button class="btn" id="pcn">Cancel</button></div>`,b=>{
+    $('#pcn',b).onclick=()=>{closeModal();res(null)};$('#pco',b).onclick=()=>{const v=$('#pcs',b).value;closeModal();res(v)}}));
+}
+function addSheetModal(chId){
+  const c=syl().ch.get(chId),p=paperById(c.paper);
+  modal(`<h3>Add a revision sheet</h3><p class="small muted" style="margin-top:0">${esc(p.n)} · ${esc(chapterName(chId))}</p>
+    <div class="card tight" style="margin-bottom:8px"><b>Import a revision page</b><p class="small muted" style="margin:4px 0 8px">An .html page made by Claude. Its questions and answers are matched too.</p><button class="btn sm pri" id="asI">Choose page</button></div>
+    <div class="card tight" style="margin-bottom:8px"><b>Paste a sheet</b><p class="small muted" style="margin:4px 0 8px">Copy a summary from Claude or any page and paste it here. Colours, tables and diagrams are kept.</p>
+      <input type="text" id="asT" placeholder="Title" value="${esc(chapterName(chId).replace(/^\d+\.\s*/,''))} – revision sheet">
+      <div class="reader qs" id="asP" contenteditable="true" data-ph="Paste here" style="min-height:120px;max-height:40vh;overflow:auto;margin-top:8px"></div>
+      <button class="btn sm pri" id="asS" style="margin-top:8px">Save sheet</button></div>
+    <div class="card tight"><b>Use a note already in your Library</b><p class="small muted" style="margin:4px 0 8px">Link an existing note to this chapter.</p><button class="btn sm" id="asL">Choose note</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="asX">Close</button></div>`,b=>{
+      $('#asX',b).onclick=closeModal;
+      const pa=$('#asP',b);richPasteInto(pa);pa.addEventListener('input',()=>pa.removeAttribute('data-ph'));
+      $('#asI',b).onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='.html,.htm,text/html';i.onchange=async()=>{if(!i.files.length)return;
+        const f=i.files[0];const pg=Object.assign(parseRevisionPage(await f.text(),f.name.replace(/\.html?$/i,'')),{file:f.name});pg.forceChapter=chId;
+        closeModal();await importAnswersPages([pg],true)};i.click()};
+      $('#asS',b).onclick=async()=>{const html=sanitizeRich(pa.innerHTML);if(!strip(html)){toast('Paste the sheet first');return}
+        const now=Date.now(),t={id:uid(),title:$('#asT',b).value.trim()||chapterName(chId),subject:p.n+' – '+p.t,unit:chapterName(chId),tags:['revision sheet'],html:sanitize(html)||'<p></p>',qs:html,summary:'',created:now,updated:now,lastOpened:0,progress:0,exampleIds:[],chapterId:chId};
+        S.topics.push(t);await saveTopicNow(t);closeModal();toast('Revision sheet saved');drawSheets()};
+      $('#asL',b).onclick=async()=>{const ids=await pickTopics({title:'Note for this chapter'});if(!ids||!ids.length)return;const t=byId(S.topics,ids[0]);t.chapterId=chId;await saveTopicNow(t);closeModal();toast('Linked');if(QF.tab==='sheets')drawSheets()};
+    });
+}
+
+/* ----- note sub-window: read a note without leaving the question ----- */
+const NOTEPANEL={el:null,t:null,prev:null,mode:'full',
+  build(){
+    if(this.el)return this.el;
+    const d=document.createElement('div');d.id='npanel';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','npT');
+    d.innerHTML=`<div class="npbox"><div class="nphd"><button class="btn sm ghost" id="npX" aria-label="Close">${ic('x',20)}</button><div class="grow" style="min-width:0"><div id="npT" class="npt"></div><div class="small muted" id="npS"></div></div></div>
+      <div class="row npctl"><div class="seg" id="npM"></div><span class="grow"></span><button class="btn sm" id="npL">${ic('play',16)} Listen</button><button class="btn sm" id="npO" title="Open full note">Open note</button></div>
+      <div class="npsc" id="npSc"><article class="reader" id="npB"></article></div></div>`;
+    document.body.appendChild(d);this.el=d;
+    d.addEventListener('click',e=>{if(e.target===d)this.close()});
+    $('#npX',d).onclick=()=>this.close();
+    $('#npO',d).onclick=()=>{const t=this.t;this.close(true);history.replaceState(null,'','#/topic/'+t.id+'/read');render()};
+    $('#npL',d).onclick=()=>{const b=$('#npB',d);if(!strip(b.innerHTML)){toast('Nothing to read');return}if(this.mode==='qs')blockifyRoot(b);TTS.open(b,this.t,{noSummary:true,title:this.t.title})};
+    $('#npM',d).onclick=e=>{const b=e.target.closest('[data-m]');if(!b||b.dataset.m===this.mode)return;if(TTS.root&&this.el.contains(TTS.root))TTS.stop(true);this.mode=b.dataset.m;this.paint()};
+    window.addEventListener('popstate',()=>{if(this.isOpen())this.close(true)});
+    window.addEventListener('hashchange',()=>{if(this.isOpen())this.close(true)});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&this.isOpen()&&!$('#modal').classList.contains('show'))this.close()});
+    return d;
+  },
+  isOpen(){return !!(this.el&&this.el.classList.contains('show'))},
+  open(tid,target){
+    const t=byId(S.topics,tid);if(!t){toast('That note no longer exists');return}
+    const d=this.build();this.t=t;this.target=target||null;
+    const hasQs=!!strip(t.qs||'');
+    this.mode=(target&&target.sheet&&hasQs)||(!target&&t.chapterId&&hasQs)?'qs':'full';
+    if(target&&(target.k||target.hs))this.mode='full';
+    /* pause anything already being read aloud and remember where it was */
+    this.prev=null;
+    if(TTS.root&&TTS.blocks.length&&!d.contains(TTS.root)){const b=TTS.blocks[TTS.bi];this.prev={root:TTS.root,el:b&&b.el,title:TTS.title,topic:TTS.topic,was:TTS.playing};TTS.stop(true)}
+    $('#npT',d).textContent=t.title;$('#npS',d).textContent=[t.subject,t.unit].filter(Boolean).join(' › ');
+    $('#npM',d).innerHTML=hasQs?`<button data-m="full" aria-pressed="${this.mode==='full'}">Full text</button><button data-m="qs" aria-pressed="${this.mode==='qs'}">${t.chapterId?'Sheet view':'Quick summary'}</button>`:'';
+    d.classList.add('show');document.body.classList.add('panel-open');
+    if(!(history.state&&history.state.np))history.pushState({np:1},'',location.href);
+    this.paint();
+    setTimeout(()=>$('#npX',d).focus(),30);
+  },
+  paint(){
+    const d=this.el,t=this.t,b=$('#npB',d);
+    $$('#npM button',d).forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===this.mode));
+    b.className='reader'+(this.mode==='qs'?' qs np-qs':'');
+    if(this.mode==='qs'){ensureFontLinks(t.fonts);b.innerHTML=t.qs||''}else b.innerHTML=t.html||'<p></p>';
+    $$('.tg',b).forEach(x=>x.remove());
+    const sc=$('#npSc',d);sc.scrollTop=0;
+    const tg=this.target;
+    if(this.mode==='full'&&tg&&(tg.k||tg.hs)){
+      let el=null;
+      if(tg.k==='h')el=$$('h1,h2,h3,h4,h5,h6',b)[tg.i];else if(tg.k==='c')el=b.children[tg.i];
+      setTimeout(()=>{if(el){el.scrollIntoView({block:'center'});el.classList.add('speaking');setTimeout(()=>el.classList.remove('speaking'),1600)}
+        try{flashTerms(el||b,{hs:tg.hs||'',hl:tg.hl||''})}catch(e){}},40);
+    }
+  },
+  close(fromNav){
+    if(!this.isOpen())return;
+    if(TTS.root&&this.el.contains(TTS.root))TTS.stop(true);
+    this.el.classList.remove('show');document.body.classList.remove('panel-open');
+    if(!fromNav&&history.state&&history.state.np)history.back();
+    const pv=this.prev;this.prev=null;
+    if(pv&&pv.root&&pv.root.isConnected){TTS.open(pv.root,pv.topic,{noSummary:true,title:pv.title,startEl:pv.el});if(!pv.was)TTS.pause();else toast('Back to the model answer',2000)}
+  }
+};
+
+/* ----- search inside Practise: questions, model answers and my answers ----- */
+let PIDX=null;
+function pIndex(){
+  const sig=S.questions.length+':'+S.answers.length+':'+Math.max(0,...S.questions.map(q=>q.updated||0))+':'+Math.max(0,...S.answers.map(a=>a.updated||0));
+  if(PIDX&&PIDX.sig===sig)return PIDX;
+  const docs=[],df=new Map();
+  const add=(kind,ref,text,extra)=>{
+    const tf=new Map();let len=0;
+    for(const x of toks(text+(extra?' '+extra:''))){if(x.stop||x.w.length<2)continue;tf.set(x.s,(tf.get(x.s)||0)+1);len++}
+    if(!len)return;tf.forEach((_,k)=>df.set(k,(df.get(k)||0)+1));docs.push({kind,ref,text,tf,len});
+  };
+  S.questions.forEach(q=>add('q',q,q.text,subtopicName(q.subtopic)));
+  S.answers.forEach(a=>{const q=byId(S.questions,a.qid);if(q&&a.html)add('a',a,strip(a.html))});
+  const N=docs.length||1,avg={q:0,a:0},cnt={q:0,a:0};docs.forEach(d=>{avg[d.kind]+=d.len;cnt[d.kind]++});
+  avg.q=avg.q/(cnt.q||1);avg.a=avg.a/(cnt.a||1);
+  PIDX={sig,docs,df,N,avg};return PIDX;
+}
+function psearch(q){
+  const P=pIndex();if(!P.docs.length||!q.trim())return{questions:[],answers:[],stems:[]};
+  const all=toks(q),long=all.length>=7,terms=new Map();
+  all.forEach(t=>{if(!t.stop&&t.w.length>=2&&!(long&&QSTOP.has(t.w)))terms.set(t.s,1)});
+  const base=[...terms.keys()];
+  try{const sm=synMap();base.forEach(s=>{const g=sm.get(s);if(g)g.forEach(b=>{if(!terms.has(b))terms.set(b,0.5)})})}catch(e){}
+  try{const ix=NLP.idx;if(ix&&ix.acro)for(const [ac,full] of ix.acro){if(terms.has(ac))full.forEach(s=>{if(!terms.has(s))terms.set(s,0.45)});else if(full.length>1&&full.every(s=>terms.has(s))&&!terms.has(ac))terms.set(ac,0.8)}}catch(e){}
+  const K1=1.2,B=0.75,res=[];
+  for(const d of P.docs){
+    let sc=0,hit=0;
+    for(const [s,w] of terms){const tf=d.tf.get(s);if(!tf)continue;hit+=w===1?1:0;const idf=Math.log(1+(P.N-P.df.get(s)+0.5)/(P.df.get(s)+0.5));sc+=w*idf*(tf*(K1+1))/(tf+K1*(1-B+B*d.len/(P.avg[d.kind]||1)))}
+    if(sc>0)res.push({d,sc,hit});
+  }
+  const need=Math.min(base.length,long?Math.max(2,Math.ceil(base.length*0.35)):base.length>2?2:1);
+  const pick=kind=>{const r=res.filter(x=>x.d.kind===kind&&x.hit>=need).sort((a,b)=>b.sc-a.sc);const top=r.length?r[0].sc:0;return r.filter(x=>x.sc>=top*0.3).slice(0,kind==='q'?12:8)};
+  const snip=(text)=>{
+    const ss=sentencesOf(text);let best=ss[0]||text,bs=-1;
+    for(const s1 of ss){let n=0;for(const t of toks(s1))if(terms.has(t.s))n+=terms.get(t.s);if(n>bs){bs=n;best=s1}}
+    if(best.length>220)best=best.slice(0,220)+'…';
+    let out='',pos=0;for(const t of toks(best)){if(terms.has(t.s)){out+=esc(best.slice(pos,t.i))+'<b>'+esc(best.slice(t.i,t.e))+'</b>';pos=t.e}}
+    return out+esc(best.slice(pos));
+  };
+  return{
+    questions:pick('q').map(x=>({q:x.d.ref,sc:x.sc})),
+    answers:pick('a').map(x=>({a:x.d.ref,q:byId(S.questions,x.d.ref.qid),sc:x.sc,snip:snip(x.d.text)})),
+    stems:[...terms.keys()]
+  };
+}
+function practiseResultsHtml(q){
+  const r=psearch(q);if(!r.questions.length&&!r.answers.length)return{html:'',n:0};
+  const hs=hsParam(r.stems),A=ansIndex(),R=repeatCounts();
+  let h='';
+  if(r.answers.length)h+=`<div class="subjhead">Model answers and my answers</div>`+r.answers.map(x=>`<a class="res pas" style="display:block" href="#/practise/${encodeURIComponent(x.q.id)}?a=${encodeURIComponent(x.a.id)}&hs=${hs}"><div class="p">${x.a.kind==='ai'?'Model answer':'My answer'} · ${esc(paperLabel(x.q))}${x.q.chapter?' › '+esc(chapterName(x.q.chapter)):''}</div><div style="font-weight:700;margin:2px 0">${esc(x.q.text)}</div><div class="snip">${x.snip}</div></a>`).join('');
+  if(r.questions.length)h+=`<div class="subjhead">Questions in Practise</div><div class="res">`+r.questions.map(x=>qRow(x.q,A,R)).join('')+`</div>`;
+  return{html:h,n:r.questions.length+r.answers.length};
+}
+
+/* ---------- car audio: real audio files made with Google's text-to-speech, played as normal media ----------
+   Browser speech is not treated as media by Android, so it does not reach Android Auto or Bluetooth reliably and
+   stops when the screen locks. Here notes and answers are turned into MP3 once (stored on this device only),
+   then played through one <audio> element with lock-screen, headphone and steering-wheel controls. */
+const CAR={
+  key(){try{return localStorage.getItem('sl_ttskey')||''}catch(e){return ''}},
+  setKey(v){try{v?localStorage.setItem('sl_ttskey',v):localStorage.removeItem('sl_ttskey')}catch(e){}},
+  voice(){try{return localStorage.getItem('sl_ttsvoice')||''}catch(e){return ''}},
+  setVoice(v){try{localStorage.setItem('sl_ttsvoice',v)}catch(e){}},
+  list(){try{return JSON.parse(localStorage.getItem('sl_carlist')||'[]')}catch(e){return[]}},
+  saveList(l){try{localStorage.setItem('sl_carlist',JSON.stringify(l))}catch(e){}},
+  usage(){try{const u=JSON.parse(localStorage.getItem('sl_ttsuse')||'{}');const m=new Date().toISOString().slice(0,7);return u.m===m?u:{m,n:0}}catch(e){return{m:'',n:0}}},
+  addUsage(n){const u=this.usage();u.n+=n;try{localStorage.setItem('sl_ttsuse',JSON.stringify(u))}catch(e){}},
+  voiceType(name){return /Chirp3-HD|Chirp-HD/i.test(name)?'Chirp 3 HD':/Neural2/i.test(name)?'Neural2':/Wavenet/i.test(name)?'WaveNet':/Studio/i.test(name)?'Studio':/Standard/i.test(name)?'Standard':'Other'},
+  freeOf(name){const t=this.voiceType(name);return t==='WaveNet'||t==='Standard'?4e6:1e6},
+  rankVoice(name){return {'Chirp 3 HD':5,'Neural2':4,'WaveNet':3,'Studio':2,'Standard':1}[this.voiceType(name)]||0},
+  async api(path,body){
+    const k=this.key();if(!k)throw new Error('Add your Google voice key in More › Car audio first.');
+    let r;
+    try{r=await fetch('https://texttospeech.googleapis.com/v1/'+path+(path.includes('?')?'&':'?')+'key='+encodeURIComponent(k),body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})}
+    catch(e){throw new Error('Could not reach Google. Check your internet connection.')}
+    if(!r.ok){
+      let m='';try{const j=await r.json();m=(j.error&&j.error.message)||''}catch(e){}
+      if(r.status===403&&/billing/i.test(m))throw new Error('Google says billing is not enabled for this key’s project. See the setup steps in More › Car audio.');
+      if(r.status===403||r.status===401||/API key/i.test(m))throw new Error('Google did not accept the key ('+(m||r.status)+'). Check the key and that the Text-to-Speech API is enabled.');
+      if(r.status===429)throw new Error('Google’s rate limit was reached. Wait a minute and try again.');
+      throw new Error('Google returned an error ('+r.status+'): '+m.slice(0,160));
+    }
+    return r.json();
+  },
+  async voices(){
+    const j=await this.api('voices?languageCode=en-IN');
+    return (j.voices||[]).filter(v=>(v.languageCodes||[]).some(c=>/^en-IN$/i.test(c))).sort((a,b)=>this.rankVoice(b.name)-this.rankVoice(a.name)||a.name.localeCompare(b.name));
+  }
+};
+
+/* ----- MP3 helpers: strip tags/info frames so chunks join into one clean stream ----- */
+function mp3FrameLen(b,i){
+  if(b[i]!==0xFF||(b[i+1]&0xE0)!==0xE0)return 0;
+  const ver=(b[i+1]>>3)&3,layer=(b[i+1]>>1)&3;if(ver===1||layer!==1)return 0;   // layer III only
+  const bi=(b[i+2]>>4)&15,si=(b[i+2]>>2)&3,pad=(b[i+2]>>1)&1;if(bi===0||bi===15||si===3)return 0;
+  const v1=ver===3;
+  const br=(v1?[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320]:[0,8,16,24,32,40,48,56,64,80,96,112,128,144,160])[bi]*1000;
+  const sr=[[11025,12000,8000],null,[22050,24000,16000],[44100,48000,32000]][ver][si];
+  return Math.floor((v1?144:72)*br/sr)+pad;
+}
+function mp3Clean(buf){
+  let b=new Uint8Array(buf),i=0;
+  if(b[0]===0x49&&b[1]===0x44&&b[2]===0x33){const sz=((b[6]&127)<<21)|((b[7]&127)<<14)|((b[8]&127)<<7)|(b[9]&127);i=10+sz+((b[5]&0x10)?10:0)}
+  while(i<b.length-4&&!mp3FrameLen(b,i))i++;
+  const L=mp3FrameLen(b,i);
+  if(L){const seg=String.fromCharCode(...b.subarray(i,Math.min(i+L,b.length)));if(/Xing|Info|VBRI/.test(seg))i+=L}
+  let end=b.length;
+  if(end>128&&b[end-128]===0x54&&b[end-127]===0x41&&b[end-126]===0x47)end-=128;   // ID3v1 "TAG"
+  return b.subarray(i,end);
+}
+let _actx=null;
+async function mp3Duration(bytes){
+  try{_actx=_actx||new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,24000);
+    const ab=await _actx.decodeAudioData(bytes.slice().buffer);return ab.duration}catch(e){}
+  /* fallback: count frames */
+  let i=0,n=0,sr=24000,spf=576;while(i<bytes.length-4){const L=mp3FrameLen(bytes,i);if(!L){i++;continue}const ver=(bytes[i+1]>>3)&3;sr=[[11025,12000,8000],null,[22050,24000,16000],[44100,48000,32000]][ver][(bytes[i+2]>>2)&3];spf=ver===3?1152:576;n++;i+=L}
+  return n*spf/sr;
+}
+const b64bytes=s=>{const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u};
+
+/* ----- what to read for an item ----- */
+function carItemInfo(k){
+  const [kind,id]=[k.slice(0,1),k.slice(2)];
+  if(kind==='t'){const t=byId(S.topics,id);if(!t)return null;return{k,kind,title:t.title,sub:t.chapterId?'Revision sheet · '+chapterName(t.chapterId):(t.subject||''),html:t.html||'',lead:t.title}}
+  if(kind==='a'){const a=byId(S.answers,id);if(!a)return null;const q=byId(S.questions,a.qid);if(!q)return null;
+    return{k,kind,title:q.text,sub:(a.kind==='ai'?'Model answer':'My answer')+(q.chapter?' · '+chapterName(q.chapter):''),html:a.html||'',lead:'Question. '+q.text}}
+  return null;
+}
+function carBlocks(info){
+  const d=document.createElement('div');d.innerHTML=info.html;
+  d.querySelectorAll('svg,script,style,.tg,figure svg').forEach(n=>n.remove());
+  blockifyRoot(d);
+  const els=[...d.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,blockquote,figcaption,td,th,div')].filter(el=>!(/^(DIV|BLOCKQUOTE)$/.test(el.tagName)&&el.querySelector('p,li,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,table,blockquote'))&&(S.settings.readTables||!el.closest('table')));
+  const out=[{text:info.lead,head:true}];
+  els.forEach(el=>{
+    const tx=TTS.textMap(el).text.replace(/\s+/g,' ').trim();
+    if(tx)out.push({text:tx,head:/^H[1-6]$/.test(el.tagName)});
+  });
+  return out;
+}
+const xmlEsc=s=>s.replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
+function carRequests(blocks){
+  const reqs=[];let cur={parts:[],marks:[],size:0};
+  const flush=()=>{if(cur.parts.length)reqs.push(cur);cur={parts:[],marks:[],size:0}};
+  blocks.forEach(b=>{
+    const spoken=TTS.prep(b.text).spoken;
+    const piece=xmlEsc(spoken)+`<break time="${b.head?650:420}ms"/>`;
+    const bytes=new TextEncoder().encode(piece).length;
+    if(cur.size+bytes>4300)flush();
+    if(bytes>4300){   // very long block: split by sentences
+      sentencesOf(spoken).forEach(sn=>{const p=xmlEsc(sn)+' ';const n=new TextEncoder().encode(p).length;if(cur.size+n>4300)flush();cur.parts.push(p);cur.marks.push({text:b.text,len:sn.length,head:b.head});cur.size+=n});
+      cur.parts.push('<break time="420ms"/>');return;
+    }
+    cur.parts.push(piece);cur.marks.push({text:b.text,len:spoken.length,head:b.head});cur.size+=bytes;
+  });
+  flush();
+  return reqs;
+}
+async function carMake(k,onStep,signal){
+  const info=carItemInfo(k);if(!info)throw new Error('That item no longer exists.');
+  const voice=CAR.voice();if(!voice)throw new Error('Choose a voice in More › Car audio first.');
+  const blocks=carBlocks(info),reqs=carRequests(blocks);
+  const sig=hash36(voice+'|'+blocks.map(b=>b.text).join('\n'));
+  const parts=[],marks=[];let t0=0,chars=0;
+  for(let i=0;i<reqs.length;i++){
+    if(signal&&signal.stop)throw new Error('stopped');
+    const r=reqs[i],ssml='<speak>'+r.parts.join('')+'</speak>';
+    let j;
+    try{j=await CAR.api('text:synthesize',{input:{ssml},voice:{languageCode:'en-IN',name:voice},audioConfig:{audioEncoding:'MP3',sampleRateHertz:24000}})}
+    catch(e){
+      if(!/SSML|ssml/.test(e.message))throw e;
+      j=await CAR.api('text:synthesize',{input:{text:r.parts.join(' ').replace(/<break[^>]*>/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&apos;/g,"'")},voice:{languageCode:'en-IN',name:voice},audioConfig:{audioEncoding:'MP3',sampleRateHertz:24000}});
+    }
+    chars+=ssml.length;
+    const bytes=mp3Clean(b64bytes(j.audioContent));const dur=await mp3Duration(bytes);
+    const tot=r.marks.reduce((a,m)=>a+m.len,0)||1;let acc=0;
+    r.marks.forEach(m=>{marks.push({t:t0+dur*acc/tot,text:m.text,head:m.head});acc+=m.len});
+    parts.push(bytes);t0+=dur;
+    if(onStep)onStep(i+1,reqs.length);
+  }
+  CAR.addUsage(chars);
+  const rec={id:k,sig,voice,blob:new Blob(parts,{type:'audio/mpeg'}),dur:t0,marks,title:info.title,made:Date.now()};
+  await DB.put('audio',rec);
+  return rec;
+}
+function carSig(k){const info=carItemInfo(k);return info?hash36(CAR.voice()+'|'+carBlocks(info).map(b=>b.text).join('\n')):''}
+async function carRecord(k){if(DB.mem)return null;try{return await DB.tx('audio','readonly',s=>s.get(k))}catch(e){return null}}
+function carCharsFor(k){const info=carItemInfo(k);if(!info)return 0;return carRequests(carBlocks(info)).reduce((a,r)=>a+r.parts.join('').length+15,0)}
+function addToCar(keys){
+  const l=CAR.list(),have=new Set(l.map(x=>x.k));let n=0;
+  keys.forEach(k=>{if(!have.has(k)&&carItemInfo(k)){l.push({k});have.add(k);n++}});
+  CAR.saveList(l);toast(n?`Added ${n} to Car audio`:'Already in Car audio');return n;
+}
+
+/* ----- the player: one <audio> playing the whole playlist ----- */
+const CARP={el:null,url:'',bounds:[],items:[],marks:[],title:'',
+  audio(){
+    if(this.el)return this.el;
+    const a=document.createElement('audio');a.id='carAudio';a.preload='auto';document.body.appendChild(a);this.el=a;
+    a.addEventListener('timeupdate',()=>this.tick());
+    a.addEventListener('play',()=>{this.media();this.ui()});a.addEventListener('pause',()=>{this.ui();this.savePos()});
+    a.addEventListener('ended',()=>{this.ui();try{localStorage.removeItem('sl_carpos')}catch(e){}});
+    a.addEventListener('ratechange',()=>this.ui());
+    return a;
+  },
+  async load(recs){
+    const a=this.audio();
+    if(this.url)URL.revokeObjectURL(this.url);
+    this.items=recs;this.bounds=[];this.marks=[];let t=0;
+    recs.forEach(r=>{this.bounds.push(t);r.marks.forEach(m=>this.marks.push({t:t+m.t,text:m.text,head:m.head,item:this.bounds.length-1}));t+=r.dur});
+    this.total=t;
+    this.blob=new Blob(recs.map(r=>r.blob),{type:'audio/mpeg'});
+    this.url=URL.createObjectURL(this.blob);a.src=this.url;
+    a.playbackRate=+S.settings.carRate||1;
+    this.media();
+  },
+  cur(){const t=this.el?this.el.currentTime:0;let i=0;while(i+1<this.bounds.length&&this.bounds[i+1]<=t+0.05)i++;return i},
+  jumpItem(d){if(!this.el||!this.items.length)return;const i=this.cur(),t=this.el.currentTime;
+    let n=d<0&&t-this.bounds[i]>4?i:i+d;n=Math.max(0,Math.min(this.items.length-1,n));this.el.currentTime=this.bounds[n]+0.01;this.ui()},
+  seek(s){if(!this.el)return;this.el.currentTime=Math.max(0,Math.min((this.total||this.el.duration||0)-0.5,this.el.currentTime+s));this.ui()},
+  toggle(){if(!this.el||!this.items.length)return;if(this.el.paused){if(TTS.root)TTS.stop(true);this.el.play().catch(()=>toast('Tap play again to start audio'))}else this.el.pause()},
+  savePos(){try{if(this.el&&this.items.length)localStorage.setItem('sl_carpos',JSON.stringify({sig:this.items.map(r=>r.id+':'+r.sig).join('|'),t:this.el.currentTime}))}catch(e){}},
+  media(){
+    if(!('mediaSession' in navigator))return;
+    const ms=navigator.mediaSession,h=(n,f)=>{try{ms.setActionHandler(n,f)}catch(e){}};
+    h('play',()=>this.toggle());h('pause',()=>this.toggle());
+    h('previoustrack',()=>this.jumpItem(-1));h('nexttrack',()=>this.jumpItem(1));
+    h('seekbackward',d=>this.seek(-((d&&d.seekOffset)||15)));h('seekforward',d=>this.seek((d&&d.seekOffset)||15));
+    h('seekto',d=>{if(this.el&&d&&d.seekTime!=null){this.el.currentTime=d.seekTime;this.ui()}});
+    h('stop',()=>{if(this.el)this.el.pause()});
+  },
+  tick(){
+    const now=Date.now();if(now-(this._lt||0)<400)return;this._lt=now;
+    this.ui();if(now-(this._ls||0)>5000){this._ls=now;this.savePos()}
+  },
+  ui(){
+    const a=this.el;if(!a)return;
+    const i=this.cur(),it=this.items[i];
+    if('mediaSession' in navigator&&it){
+      if(this._mi!==i){this._mi=i;try{navigator.mediaSession.metadata=new MediaMetadata({title:it.title.slice(0,120),artist:'Study Library · '+(i+1)+' of '+this.items.length,album:'Car audio'})}catch(e){}}
+      try{navigator.mediaSession.playbackState=a.paused?'paused':'playing';if(this.total)navigator.mediaSession.setPositionState({duration:this.total,playbackRate:a.playbackRate,position:Math.min(a.currentTime,this.total)})}catch(e){}
+    }
+    const v=$('#carNow');if(!v)return;
+    const t=a.currentTime;let m=null;for(let k=this.marks.length-1;k>=0;k--){if(this.marks[k].t<=t+0.05){m=this.marks[k];break}}
+    v.innerHTML=it?`<div class="small muted">${i+1} of ${this.items.length}</div><div class="cnt">${esc(it.title)}</div>${m&&!m.head?`<div class="cline">${esc(m.text.length>260?m.text.slice(0,260)+'…':m.text)}</div>`:m?`<div class="cline"><b>${esc(m.text)}</b></div>`:''}`:'<div class="muted">Nothing loaded</div>';
+    const pp=$('#carPP');if(pp){pp.innerHTML=a.paused?ic('play',34):ic('pause',34);pp.setAttribute('aria-label',a.paused?'Play':'Pause')}
+    const sk=$('#carSeek');if(sk&&!this._drag){sk.max=Math.round(this.total||0);sk.value=Math.round(t)}
+    const tm=$('#carTime');if(tm)tm.textContent=fmtMin(t)+' / '+fmtMin(this.total||0);
+    $$('.caritem').forEach(r=>r.classList.toggle('now',+r.dataset.i===i&&!!this.items.length));
+  }
+};
+const fmtMin=s=>{s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
+
+VIEWS.car=()=>{
+  const l=CAR.list(),hasKey=!!CAR.key()&&!!CAR.voice();
+  view().innerHTML=`<div class="row sp"><h1 class="pg">Car audio</h1><button class="btn sm" id="carSet">${ic('sliders',18)} Voice settings</button></div>
+  <p class="sub">Turn notes, revision sheets and model answers into real audio once, then play them like a podcast: with the screen locked, over Bluetooth and Android Auto, using your steering-wheel or headphone buttons.</p>
+  ${hasKey?'':`<div class="card" style="border-color:var(--brand);margin-bottom:12px"><b>One-time setup needed</b><p class="small" style="margin:6px 0">Audio is made by Google’s Indian-English voices, using your own Google key. Open Voice settings for the steps.</p><button class="btn sm pri" id="carSet2">Set up voices</button></div>`}
+  <div class="card carplayer">
+    <div id="carNow"><div class="muted">Add items below, make their audio, then press play.</div></div>
+    <input type="range" id="carSeek" min="0" max="0" value="0" aria-label="Position">
+    <div class="row sp small muted"><span id="carTime">0:00 / 0:00</span><span><label for="carRate">Speed</label> <select id="carRate">${[0.75,0.85,0.9,1,1.1,1.25,1.5,1.75,2].map(r=>`<option value="${r}" ${(+S.settings.carRate||1)===r?'selected':''}>${r}x</option>`).join('')}</select></span></div>
+    <div class="carctl">
+      <button id="carPrev" aria-label="Previous item">${ic('prev',26)}</button>
+      <button id="carB" aria-label="Back 15 seconds"><span class="small">−15s</span></button>
+      <button id="carPP" class="pp" aria-label="Play">${ic('play',34)}</button>
+      <button id="carF" aria-label="Forward 15 seconds"><span class="small">+15s</span></button>
+      <button id="carNext" aria-label="Next item">${ic('next',26)}</button>
+    </div>
+  </div>
+  <div class="row sp" style="margin-top:16px"><h2 class="sec" style="margin:0">Playlist <span class="muted small" id="carCount"></span></h2><button class="btn sm" id="carAdd">${ic('plus',16)} Add</button></div>
+  <div id="carList" style="margin-top:8px"></div>
+  <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn pri" id="carMakeAll">Make missing audio</button><button class="btn" id="carDl">${ic('down',18)} Save as MP3</button><button class="btn ghost" id="carClr">Clear playlist</button></div>
+  <p class="small muted" id="carMsg" role="status"></p>
+  <details class="ess"><summary>If it doesn’t play in the car</summary><div class="body small">
+   <p>Study Library can’t appear on the Android Auto screen itself, because only installed Android apps can. The audio plays from your phone like music, so start it on the phone before you drive and use the steering-wheel buttons for next, previous and pause.</p>
+   <p>If your car still doesn’t play it, use <b>Save as MP3</b> and open the file in a music app that supports Android Auto (for example VLC or another local-music player). Then it shows on the car screen like any song.</p></div></details>`;
+  $('#carSet').onclick=carSettings;const s2=$('#carSet2');if(s2)s2.onclick=carSettings;
+  $('#carPP').onclick=()=>CARP.toggle();$('#carPrev').onclick=()=>CARP.jumpItem(-1);$('#carNext').onclick=()=>CARP.jumpItem(1);
+  $('#carB').onclick=()=>CARP.seek(-15);$('#carF').onclick=()=>CARP.seek(15);
+  $('#carRate').onchange=e=>{S.settings.carRate=+e.target.value;saveSettings();if(CARP.el)CARP.el.playbackRate=+e.target.value};
+  const sk=$('#carSeek');sk.oninput=()=>{CARP._drag=true;$('#carTime').textContent=fmtMin(+sk.value)+' / '+fmtMin(CARP.total||0)};sk.onchange=()=>{CARP._drag=false;if(CARP.el){CARP.el.currentTime=+sk.value;CARP.ui()}};
+  $('#carAdd').onclick=carAddMenu;
+  $('#carClr').onclick=async()=>{if(!await confirmBox('Clear the playlist? Audio already made stays saved and is reused if you add the items again.','Clear',false))return;CAR.saveList([]);VIEWS.car()};
+  $('#carMakeAll').onclick=()=>carMakeMissing();
+  $('#carDl').onclick=async()=>{const recs=await carReadyRecs();if(!recs.length){toast('Make the audio first');return}
+    const blob=new Blob(recs.map(r=>r.blob),{type:'audio/mpeg'});saveFile('study-library-car-audio-'+new Date().toISOString().slice(0,10)+'.mp3',blob,'audio/mpeg')};
+  carDrawList();
+  if(CARP.items.length)CARP.ui();
+};
+async function carReadyRecs(){
+  const out=[];for(const x of CAR.list()){const r=await carRecord(x.k);if(r&&r.sig===carSig(x.k))out.push(r)}return out;
+}
+async function carDrawList(){
+  const el=$('#carList');if(!el)return;
+  const l=CAR.list();
+  if(!l.length){el.innerHTML='<div class="empty">The playlist is empty. Tap <b>Add</b>, or use “Add to Car audio” on any note, revision sheet or model answer.</div>';$('#carCount').textContent='';return}
+  const rows=[];let ready=0,tot=0,need=0;
+  for(let i=0;i<l.length;i++){
+    const info=carItemInfo(l[i].k);if(!info)continue;
+    const r=await carRecord(l[i].k),ok=!!(r&&r.sig===carSig(l[i].k));
+    const idx=ok?ready++:null;
+    if(ok)tot+=r.dur;else need+=carCharsFor(l[i].k);
+    rows.push(`<div class="caritem" ${ok?`data-i="${idx}"`:''} data-k="${esc(l[i].k)}"><div class="grow" style="min-width:0"><div class="cit">${esc(info.title)}</div><div class="small muted">${esc(info.sub)} · ${ok?fmtMin(r.dur):r?'<span style="color:var(--danger)">changed since its audio was made</span>':'audio not made yet'}</div></div>
+      <div class="row" style="gap:4px;flex:none"><button class="btn sm ghost" data-up="${i}" aria-label="Move up">${ic('up',16)}</button><button class="btn sm ghost" data-rm="${i}" aria-label="Remove">${ic('x',16)}</button></div></div>`);
+  }
+  el.innerHTML=rows.join('');
+  const u=CAR.usage(),v=CAR.voice(),free=v?CAR.freeOf(v):1e6;
+  $('#carCount').textContent=`${l.length} item${l.length===1?'':'s'}${ready?` · ${ready} ready, ${fmtMin(tot)}`:''}`;
+  $('#carMsg').innerHTML=(need?`About <b>${Math.round(need/1000)}k</b> characters to make. `:'')+(v?`This month: ${Math.round(u.n/1000)}k of the free ${free/1e6} million characters for ${esc(CAR.voiceType(v))} voices.`:'');
+  el.onclick=e=>{
+    const up=e.target.closest('[data-up]'),rm=e.target.closest('[data-rm]');
+    if(up){const i=+up.dataset.up;if(i>0){const L=CAR.list();[L[i-1],L[i]]=[L[i],L[i-1]];CAR.saveList(L);carDrawList();carReload()}return}
+    if(rm){const L=CAR.list();L.splice(+rm.dataset.rm,1);CAR.saveList(L);carDrawList();carReload();return}
+    const row=e.target.closest('.caritem');if(row&&row.dataset.i!=null&&CARP.items.length){CARP.el.currentTime=CARP.bounds[+row.dataset.i]+0.01;if(CARP.el.paused)CARP.toggle();CARP.ui()}
+  };
+  carReload();
+}
+async function carReload(){
+  const recs=await carReadyRecs();
+  const sig=recs.map(r=>r.id+':'+r.sig).join('|');
+  if(sig===CARP.sig)return;
+  const wasPlaying=CARP.el&&!CARP.el.paused,keepT=CARP.el?CARP.el.currentTime:0,sameStart=CARP.sig&&sig.startsWith(CARP.sig.split('|')[0]);
+  CARP.sig=sig;
+  if(!recs.length){CARP.items=[];if(CARP.el){CARP.el.pause();CARP.el.removeAttribute('src')}CARP.ui();return}
+  await CARP.load(recs);
+  let pos=0;try{const p=JSON.parse(localStorage.getItem('sl_carpos')||'null');if(p&&p.sig===sig)pos=p.t}catch(e){}
+  if(!pos&&wasPlaying&&sameStart)pos=keepT;
+  if(pos)CARP.el.currentTime=pos;
+  if(wasPlaying)CARP.el.play().catch(()=>{});
+  CARP.ui();
+}
+let CARJOB=null;
+async function carMakeMissing(keys){
+  if(!CAR.key()||!CAR.voice()){carSettings();return}
+  if(CARJOB){toast('Already making audio');return}
+  const l=keys||CAR.list().map(x=>x.k),todo=[];
+  for(const k of l){const r=await carRecord(k);if(!r||r.sig!==carSig(k))todo.push(k)}
+  if(!todo.length){toast('All audio is ready');return}
+  const chars=todo.reduce((a,k)=>a+carCharsFor(k),0),u=CAR.usage(),free=CAR.freeOf(CAR.voice());
+  if(u.n+chars>free*0.9&&!await confirmBox(`This needs about ${Math.round(chars/1000)}k characters. You have used ${Math.round(u.n/1000)}k of the free ${free/1e6} million this month (as counted on this device), so Google may charge for the rest. Continue?`,'Continue',false))return;
+  CARJOB={stop:false};const msg=()=>$('#carMsg');
+  const b=$('#carMakeAll');if(b){b.textContent='Stop';b.onclick=()=>{CARJOB.stop=true}}
+  let done=0,err='';
+  for(const k of todo){
+    const info=carItemInfo(k);
+    try{await carMake(k,(i,n)=>{const m=msg();if(m)m.textContent=`Making ${done+1} of ${todo.length}: ${info.title.slice(0,50)} (${i}/${n})`},CARJOB)}
+    catch(e){if(e.message!=='stopped')err=e.message;break}
+    done++;
+  }
+  CARJOB=null;
+  if(err)toast(err,7000);else toast(done?`Audio ready for ${done} item${done===1?'':'s'}`:'Stopped',3500);
+  if(location.hash.startsWith('#/car'))VIEWS.car();
+}
+function carAddMenu(){
+  const due=S.topics.filter(t=>isDue(t)),A=ansIndex();
+  modal(`<h3>Add to Car audio</h3>
+    <button class="btn" id="caDue" style="width:100%;justify-content:flex-start;margin-bottom:8px">Notes and sheets due for revision today (${due.length})</button>
+    <label class="f" for="caCh">A chapter’s revision sheet and model answers</label>
+    <div class="row"><select id="caCh" class="grow">${chapterOptions('').replace('Not linked to a chapter','Choose a chapter')}</select><button class="btn sm pri" id="caChGo">Add</button></div>
+    <label class="row small" style="gap:8px;margin-top:6px"><input type="checkbox" id="caVer"> <span>Only answers I have marked verified</span></label>
+    <label class="f" for="caP">Very-high probable questions that have a model answer</label>
+    <div class="row"><select id="caP" class="grow">${PAPERS.map(p=>`<option value="${p.id}">${p.n} – ${esc(p.t)}</option>`).join('')}</select><button class="btn sm pri" id="caPGo">Add</button></div>
+    <p class="small muted" style="margin-top:10px">You can also add single items with “Add to Car audio” on a note’s Read tab or on any model answer.</p>
+    <div class="row" style="margin-top:12px"><button class="btn" id="caX">Close</button></div>`,b=>{
+      $('#caX',b).onclick=closeModal;
+      const fin=()=>{closeModal();if(location.hash.startsWith('#/car'))carDrawList()};
+      $('#caDue',b).onclick=()=>{addToCar(due.map(t=>'t:'+t.id));fin()};
+      $('#caChGo',b).onclick=()=>{const c=$('#caCh',b).value;if(!c){toast('Choose a chapter');return}const ver=$('#caVer',b).checked;
+        const keys=sheetsFor(c).map(t=>'t:'+t.id).concat(S.questions.filter(q=>q.chapter===c).flatMap(q=>S.answers.filter(a=>a.qid===q.id&&a.kind==='ai'&&(!ver||a.verified)).map(a=>'a:'+a.id)));
+        if(!keys.length){toast('Nothing in that chapter yet');return}addToCar(keys);fin()};
+      $('#caPGo',b).onclick=()=>{const p=$('#caP',b).value;const keys=S.questions.filter(q=>q.paper===p&&q.likelihood==='Very high').flatMap(q=>S.answers.filter(a=>a.qid===q.id&&a.kind==='ai').map(a=>'a:'+a.id));
+        if(!keys.length){toast('No very-high questions with a model answer in that paper yet');return}addToCar(keys);fin()};
+    });
+}
+function carSettings(){
+  const k=CAR.key(),v=CAR.voice();
+  modal(`<h3>Car audio voices</h3>
+    <p class="small" style="margin-top:0">Audio is made with Google Cloud Text-to-Speech, using your own key. Your note text is sent to Google to make the audio; the audio files stay on this phone only and are not synced or included in backups.</p>
+    <label class="f" for="ckK">Google API key</label><input type="password" id="ckK" value="${esc(k)}" autocomplete="off" placeholder="AIza…">
+    <div class="row" style="margin-top:8px"><button class="btn sm" id="ckLoad">Check key and load voices</button><button class="btn sm ghost" id="ckShow">Show</button></div>
+    <label class="f" for="ckV">Voice (English, India)</label><select id="ckV">${v?`<option value="${esc(v)}">${esc(v)} · ${esc(CAR.voiceType(v))}</option>`:'<option value="">Load voices first</option>'}</select>
+    <p class="small muted" id="ckInfo" style="margin:6px 0 0">${v?esc(CAR.voiceType(v))+': free up to '+CAR.freeOf(v)/1e6+' million characters a month.':''}</p>
+    <div class="row" style="margin-top:10px"><button class="btn sm" id="ckTest">${ic('play',16)} Test voice</button></div>
+    <details class="ess" ${k?'':'open'}><summary>How to get a key (one time, about 10 minutes)</summary><div class="body small">
+      <ol style="padding-left:1.2em;margin:0">
+        <li>Open <b>console.cloud.google.com</b> and create a <b>new project</b> just for this (keep it separate from your Firebase project, so Firebase stays on its free plan).</li>
+        <li>Turn on <b>billing</b> for that project. Google requires it even within the free allowance.</li>
+        <li>Search for <b>Cloud Text-to-Speech API</b> and press <b>Enable</b>.</li>
+        <li>Go to <b>APIs &amp; Services › Credentials › Create credentials › API key</b>.</li>
+        <li>Edit the key: under <b>API restrictions</b> allow only Cloud Text-to-Speech API; under <b>Website restrictions</b> add your GitHub Pages address (for example <code>https://yourname.github.io/*</code>).</li>
+        <li>Optional but wise: <b>Billing › Budgets &amp; alerts</b>, set a small budget so you are emailed before any charge.</li>
+        <li>Paste the key above and press <b>Check key and load voices</b>.</li>
+      </ol>
+      <p>Free each month: 1 million characters for Chirp 3 HD and Neural2 voices (most natural), 4 million for WaveNet and Standard. A full revision sheet is roughly 20–40 thousand characters; a model answer about 1.5 thousand.</p></div></details>
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="ckOk">Save</button><button class="btn" id="ckNo">Cancel</button></div>`,b=>{
+      $('#ckNo',b).onclick=closeModal;
+      $('#ckShow',b).onclick=()=>{const i=$('#ckK',b);i.type=i.type==='password'?'text':'password'};
+      const info=()=>{const vv=$('#ckV',b).value;$('#ckInfo',b).textContent=vv?CAR.voiceType(vv)+': free up to '+CAR.freeOf(vv)/1e6+' million characters a month.':''};
+      $('#ckV',b).onchange=info;
+      $('#ckLoad',b).onclick=async()=>{
+        const kk=$('#ckK',b).value.trim();if(!kk){toast('Paste the key first');return}
+        const old=CAR.key();CAR.setKey(kk);const bt=$('#ckLoad',b);bt.disabled=true;bt.textContent='Checking…';
+        try{const vs=await CAR.voices();if(!vs.length)throw new Error('No English (India) voices were returned.');
+          const cur=$('#ckV',b).value||vs[0].name;
+          $('#ckV',b).innerHTML=vs.map(x=>`<option value="${esc(x.name)}" ${x.name===cur?'selected':''}>${esc(x.name.replace(/^en-IN-/,''))} · ${esc(CAR.voiceType(x.name))} · ${x.ssmlGender==='FEMALE'?'female':x.ssmlGender==='MALE'?'male':''}</option>`).join('');
+          info();toast(`Key works: ${vs.length} Indian-English voices`);}
+        catch(e){CAR.setKey(old);toast(e.message,7000)}
+        bt.disabled=false;bt.textContent='Check key and load voices';
+      };
+      $('#ckTest',b).onclick=async()=>{
+        const kk=$('#ckK',b).value.trim(),vv=$('#ckV',b).value;if(!kk||!vv){toast('Load voices first');return}
+        const old=CAR.key();CAR.setKey(kk);
+        try{const j=await CAR.api('text:synthesize',{input:{text:TTS.prep('Dr. S.N. Bose and C.V. Raman worked at the TIFR. The 15th Finance Commission recommended 41% devolution to the States.').spoken},voice:{languageCode:'en-IN',name:vv},audioConfig:{audioEncoding:'MP3'}});
+          const a=new Audio('data:audio/mpeg;base64,'+j.audioContent);a.playbackRate=+S.settings.carRate||1;a.play()}
+        catch(e){toast(e.message,7000)}
+        finally{if(!old||old!==kk)CAR.setKey(old)}
+      };
+      $('#ckOk',b).onclick=()=>{const kk=$('#ckK',b).value.trim(),vv=$('#ckV',b).value;CAR.setKey(kk);if(vv)CAR.setVoice(vv);closeModal();toast(kk&&vv?'Saved':'Saved. Load voices to choose one.');if(location.hash.startsWith('#/car'))VIEWS.car()};
+    });
+}
+async function carStorage(){
+  if(DB.mem)return{n:0,bytes:0};
+  const all=await DB.all('audio');return{n:all.length,bytes:all.reduce((a,r)=>a+((r.blob&&r.blob.size)||0),0)};
 }
 
 /* ---------- more: settings, backup ---------- */
@@ -4126,6 +4896,7 @@ VIEWS.more=()=>{
     <label class="f" for="mLh">Line spacing <span class="muted" id="mLhv">${s.lh}</span></label><input type="range" id="mLh" min="1.4" max="2.1" step="0.05" value="${s.lh}">
     <div class="reader" style="margin:14px 0 0"><h3 style="margin-top:0">Preview heading</h3><p style="margin:0">The quick brown fox jumps over the lazy dog. This is how your reading text will look with these choices.</p></div>
     <div class="row" style="margin-top:12px"><button class="btn sm" id="mApReset">Reset appearance</button></div></div>
+  <h2 class="sec">Car audio</h2><div class="card"><p class="small" style="margin-top:0">Real audio for driving, made with Google’s Indian-English voices. <span id="mCarSt" class="muted"></span></p><div class="row"><a class="btn sm pri" href="#/car">Open Car audio</a><button class="btn sm" id="mCarSet">Voice settings</button><button class="btn sm ghost" id="mCarDel">Delete saved audio</button></div></div>
   <h2 class="sec">Study</h2><div class="card"><label class="f" for="mEx" style="margin-top:0">Exam date</label><input type="date" id="mEx" value="${esc(s.examDate)}"></div>
   <h2 class="sec">Highlight colours</h2><div class="card"><p class="small muted" style="margin-top:0">Rename what each colour means to you. Each colour also has its own underline style, so they stay distinct without relying on colour alone.</p>
     ${HL_KEYS.map(k=>`<div class="legendedit"><mark class="hl hl-${k}">Aa</mark><input type="text" data-lg="${k}" value="${esc(s.legend[k])}" aria-label="Meaning of ${k} colour"></div>`).join('')}</div>
@@ -4165,6 +4936,9 @@ VIEWS.more=()=>{
   $('#mFontSel').onchange=e=>{s.font=e.target.value;set()};
   $('#mFs').oninput=e=>{s.fs=+e.target.value;$('#mFsv').textContent=s.fs+'px';set()};
   $('#mLh').oninput=e=>{s.lh=+e.target.value;$('#mLhv').textContent=s.lh;set()};
+  $('#mCarSet').onclick=carSettings;
+  carStorage().then(st=>{const el=$('#mCarSt');if(el)el.textContent=st.n?`${st.n} item${st.n===1?'':'s'} saved on this phone (${(st.bytes/1048576).toFixed(1)} MB).`:(CAR.key()?'Key added.':'Not set up yet.')});
+  $('#mCarDel').onclick=async()=>{if(!await confirmBox('Delete all saved car audio from this phone? You can make it again later (it uses your Google allowance again).','Delete',false))return;await DB.clear('audio');CARP.sig='';toast('Saved audio deleted');VIEWS.more()};
   $('#mApReset').onclick=()=>{Object.assign(s,{theme:'auto',accent:'',inkc:'',head:'',font:'serif',fs:18,lh:1.7});set();VIEWS.more();toast('Appearance reset')};
   $('#mEx').onchange=e=>{s.examDate=e.target.value;set()};
   $$('[data-lg]').forEach(i=>i.oninput=()=>{s.legend[i.dataset.lg]=i.value||DEFAULT_SET.legend[i.dataset.lg];saveSettings()});
@@ -4201,6 +4975,7 @@ VIEWS.more=()=>{
       for(const row of S[k]){row.deleted=true;row.updated=Date.now();await DB.put(k,row)}
       S[k]=[];
     }
+    try{await DB.clear('audio')}catch(e){}CAR.saveList([]);
     TXT.clear();if(CLOUD)SYNC.cycle({pull:false});
     toast('Everything deleted. The safety copy can still restore it.',5000);location.hash='#/home';render();
   };
